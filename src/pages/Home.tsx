@@ -42,7 +42,7 @@ const Home = () => {
     {
       name: 'Michael Chen',
       role: 'Software Engineer',
-      content: 'I've tried many booking systems, but this one stands out for its simplicity and reliability. Highly recommended!',
+      content: "I've tried many booking systems, but this one stands out for its simplicity and reliability. Highly recommended!",
       avatar: 'https://randomuser.me/api/portraits/men/46.jpg'
     },
     {
