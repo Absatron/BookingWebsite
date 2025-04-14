@@ -77,7 +77,7 @@ const App = () => (
               />
               <Route 
                 path="/admin" 
-                element={<PrivateRoute element={<Layout><AdminPanel /></Layout>} adminOnly={true} />} 
+                element={<PrivateRoute element={<Layout><AdminPanel /></Layout>} adminOnly={false} />} 
               />
               
               {/* Catch-all Route */}
