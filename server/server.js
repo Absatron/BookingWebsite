@@ -6,6 +6,7 @@ import paymentRouter from './routes/payment.js';
 import userRouter from './routes/user.js';
 import session from 'express-session';
 import dotenv from 'dotenv';
+import cors from 'cors';
 
 dotenv.config();
 
@@ -17,6 +18,12 @@ mongoose.connect('mongodb://127.0.0.1:27017/bookingApp')
     .catch((err) => console.log(err))
 
 const sessionOptions = { secret: 'terriblesecret', resave: false, saveUninitialized: false };
+
+// Configure CORS
+app.use(cors({
+    origin: 'http://localhost:8080', // Allow your frontend origin
+    credentials: true, // Allow credentials (cookies, authorization headers, etc)
+}));
 
 app.use(express.static("dist"));
 app.use(express.json());

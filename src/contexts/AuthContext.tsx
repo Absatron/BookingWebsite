@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { User } from '@/types';
@@ -35,28 +34,41 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      // Simulate API call delay
       setLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Mock authentication
-      const user = mockUsers.find(u => u.email === email);
-      if (!user) {
+      const response = await fetch('http://localhost:3000/api/user/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+        credentials: 'include', // Important for handling cookies/session
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
         toast({
           title: "Login failed",
-          description: "Invalid email or password",
+          description: data.message || "Invalid email or password",
           variant: "destructive",
         });
         return false;
       }
-      
-      // In real app, you'd validate the password here
+
+      const user: User = {
+        id: data.userId,
+        email: data.email,
+        isAdmin: data.isAdmin,
+        name: data.name,
+      };
       
       setCurrentUser(user);
       localStorage.setItem('currentUser', JSON.stringify(user));
+      
       toast({
         title: "Login successful",
-        description: `Welcome back, ${user.name || 'user'}!`,
+        description: `Welcome back!`,
       });
       return true;
     } catch (error) {
@@ -74,37 +86,44 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const register = async (email: string, password: string, name: string): Promise<boolean> => {
     try {
       setLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Check if email already exists
-      if (mockUsers.some(u => u.email === email)) {
+      const response = await fetch('http://localhost:3000/api/user/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password, name }),
+        credentials: 'include', // Important for handling cookies/session
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
         toast({
           title: "Registration failed",
-          description: "Email already in use",
+          description: data.message || "Registration failed",
           variant: "destructive",
         });
         return false;
       }
-      
-      // In a real app, you'd create a user in the database
-      const newUser: User = {
-        id: `user_${Date.now()}`,
-        email,
-        name,
-        isAdmin: false,
+
+      const user: User = {
+        id: data.userId,
+        email: data.email,
+        isAdmin: data.isAdmin,
+        name: data.name,
       };
       
-      // Add to mock users (would be a database operation)
-      mockUsers.push(newUser);
+      setCurrentUser(user);
+      localStorage.setItem('currentUser', JSON.stringify(user));
       
-      setCurrentUser(newUser);
-      localStorage.setItem('currentUser', JSON.stringify(newUser));
       toast({
         title: "Registration successful",
         description: `Welcome, ${name}!`,
       });
       return true;
     } catch (error) {
+      console.error("Registration error:", error);
       toast({
         title: "Error",
         description: "An error occurred during registration",
