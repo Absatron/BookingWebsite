@@ -61,7 +61,7 @@ const Home = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
             <div className="space-y-6">
               <h1 className="text-4xl md:text-5xl font-bold text-booking-primary leading-tight animate-fade-in">
-                Simple Booking, <br />Exceptional Experience
+                Kalu Cuts
               </h1>
               <p className="text-lg text-gray-600 animate-fade-in animate-delay-100">
                 Book appointments online with ease. Our platform offers seamless scheduling, 
