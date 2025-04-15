@@ -46,7 +46,7 @@ app.use((err, req, res, next) => {
     console.log("Error handled")
     console.log(err)
     const { status = 500, message = 'Something went wrong' } = err;
-    res.status(status).json({ success: false, message: message });
+    res.status(status).json({ message: message });
 })
 
 app.listen(port, () => {

@@ -20,8 +20,8 @@ router.post('/create-checkout-session', wrapAsync(async (req, res) => {
             },
         ],
         mode: 'payment',
-        success_url: 'http://localhost:5173/confirmation?success=true',//`${YOUR_DOMAIN}?success=true`,
-        cancel_url: 'http://localhost:5173/confirmation?cancelled=true'//`${YOUR_DOMAIN}?canceled=true`,
+        success_url: 'http://localhost:8080/confirmation?success=true',//`${YOUR_DOMAIN}?success=true`,
+        cancel_url: 'http://localhost:8080/confirmation?cancelled=true'//`${YOUR_DOMAIN}?canceled=true`,
     });
 
     res.redirect(303, session.url);
