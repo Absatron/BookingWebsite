@@ -1,6 +1,6 @@
 import express from 'express';
 import { User, Event } from '../models.js';
-import { wrapAsync } from '../server-utils.js';
+import { wrapAsync } from '../utils/error-utils.js';
 import dotenv from 'dotenv';
 
 dotenv.config();

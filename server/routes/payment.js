@@ -1,5 +1,5 @@
 import express from 'express';
-import { wrapAsync } from '../server-utils.js';
+import { wrapAsync } from '../utils/error-utils.js';
 import dotenv from 'dotenv';
 import Stripe from 'stripe';
 
