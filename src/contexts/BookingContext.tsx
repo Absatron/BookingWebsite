@@ -62,6 +62,8 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const addTimeSlot = async (date: Date, startTime: string, endTime: string, price: number): Promise<boolean> => {
     setIsLoading(true);
+
+    // requests backend to add booking
     try {
       const formattedDate = format(date, 'yyyy-MM-dd');
       const response = await fetch('http://localhost:3000/api/events', {
@@ -83,21 +85,20 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
         throw new Error(data.message || 'Failed to add time slot');
       }
 
-      // Use the event data returned from the backend
+      // Use the event data returned from the backend to create the new slot
       const backendEvent = data.event;
       if (!backendEvent || !backendEvent.id) {
-        // Handle cases where the backend didn't return the expected event object
         console.error("Backend did not return the created event object:", data);
         throw new Error("Failed to retrieve created time slot from server.");
       }
 
       const newSlot: TimeSlot = {
-        id: backendEvent.id, // Use the ID from the backend
+        id: backendEvent.id, 
         date: backendEvent.date,
         startTime: backendEvent.startTime,
         endTime: backendEvent.endTime,
         isBooked: backendEvent.isBooked,
-        price: backendEvent.price, // Use price from backend response
+        price: backendEvent.price, 
       };
 
       setTimeSlots(prev => [...prev, newSlot]);
