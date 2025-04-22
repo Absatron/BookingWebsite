@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { format, addDays, startOfDay, addHours } from 'date-fns';
 import { TimeSlot, Booking } from '@/types';
@@ -62,29 +61,55 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
   const { currentUser } = useAuth();
 
   const addTimeSlot = async (date: Date, startTime: string, endTime: string, price: number): Promise<boolean> => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
-      
+      const formattedDate = format(date, 'yyyy-MM-dd');
+      const response = await fetch('http://localhost:3000/api/events', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          date: formattedDate, 
+          startTime, 
+          endTime, 
+          price 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to add time slot');
+      }
+
+      // Use the event data returned from the backend
+      const backendEvent = data.event;
+      if (!backendEvent || !backendEvent.id) {
+        // Handle cases where the backend didn't return the expected event object
+        console.error("Backend did not return the created event object:", data);
+        throw new Error("Failed to retrieve created time slot from server.");
+      }
+
       const newSlot: TimeSlot = {
-        id: `slot_${Date.now()}`,
-        date: format(date, 'yyyy-MM-dd'),
-        startTime,
-        endTime,
-        isBooked: false,
-        price,
+        id: backendEvent.id, // Use the ID from the backend
+        date: backendEvent.date,
+        startTime: backendEvent.startTime,
+        endTime: backendEvent.endTime,
+        isBooked: backendEvent.isBooked,
+        price: backendEvent.price, // Use price from backend response
       };
-      
+
       setTimeSlots(prev => [...prev, newSlot]);
       toast({
         title: "Success",
-        description: "Time slot added successfully",
+        description: data.message || "Time slot added successfully",
       });
       return true;
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to add time slot",
+        description: error.message || "Failed to add time slot",
         variant: "destructive",
       });
       return false;

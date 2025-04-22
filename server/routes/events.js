@@ -1,6 +1,7 @@
 import express from 'express';
-import { User, Event } from '../models.js';
+import { User, Booking } from '../models.js';
 import { wrapAsync } from '../utils/error-utils.js';
+import { formatBooking } from '../utils/booking-utils.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -12,14 +13,9 @@ const { ADMIN_EMAIL } = process.env;
 const isValidBooking = wrapAsync(async (req, res, next) => {
     const { date, startTime, endTime } = req.body;
 
-    const overlappingEvents = await Event.findOne({
+    const overlappingBookings = await Booking.findOne({
         date,
         $or: [
-            {
-                // All day event
-                startTime: "00:00",
-                endTime: "00:00"
-            },
             {
                 // Event starts within the existing event
                 startTime: { $gte: startTime, $lt: endTime },
@@ -36,7 +32,7 @@ const isValidBooking = wrapAsync(async (req, res, next) => {
         ],
     });
 
-    if (!overlappingEvents || startTime === endTime) {
+    if (!overlappingBookings) {
         return next();
     }
 
@@ -58,24 +54,53 @@ const isHourBooking = (req, res, next) => {
     return res.status(409).json({ success: false, message: "Duration of time slot is not an hour", calendarEventInfo: {} });
 }
 
+async function createBooking({ userId, date, startTime, endTime, price, isBooked, bookedBy }) {
+    if (bookedBy != null) {
+        const user = await User.findById(userId);
+        if (!user) throw new Error("User not found");
+        bookedBy = user._id;
+    } 
+
+    const booking = new Booking({ date, startTime, endTime, isBooked, price, bookedBy });
+    return await booking.save();
+}
+
+
 // deletes event in database 
 router.delete('/:id', wrapAsync(async (req, res) => {
     const { id } = req.params;
     await Event.findByIdAndDelete(id);
-    res.json({ success: true, message: "Event successfully deleted" });
+    res.json({ message: "Event successfully deleted" });
 
 }))
 
 // creates event in database
-router.post('/', isValidBooking, wrapAsync(async (req, res, next) => {
-    const { date, startTime, endTime } = req.body;
-    const currentUser = await User.findOne({ _id: req.session.user_id });
-    const newEvent = new Event({ date, startTime, endTime, user: currentUser._id });
-    const savedEvent = await newEvent.save();
-    const calendarEventInfo = { id: savedEvent._id, title: `booking by ${currentUser.name}` };
-    return res.json({ success: true, message: "Event successfully created", calendarEventInfo });
+router.post('/', isValidBooking, wrapAsync(async (req, res) => {
+    const { date, startTime, endTime, price } = req.body;
 
-}))
+    // saves booking in the database
+    const savedBooking = await createBooking({
+        userId: req.session.user_id,
+        date,
+        startTime,
+        endTime,
+        price,
+        isBooked: false,
+        bookedBy: null
+    });
+
+    
+    if (!savedBooking) {
+        return res.status(500).json({ message: "Failed to create event." });
+    }
+
+    // Return the created event object
+    return res.json({
+        event: formatBooking(savedBooking),
+    });
+
+}));
+
 
 // saves event to be payed for by the client
 router.post('/userSave', isHourBooking, isValidBooking, wrapAsync(async (req, res, next) => {
