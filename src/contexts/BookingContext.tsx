@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { TimeSlot, Booking } from '@/types';
 import { useToast } from "@/components/ui/use-toast";
@@ -12,7 +12,7 @@ type BookingContextType = {
   addTimeSlot: (date: Date, startTime: string, endTime: string, price: number) => Promise<boolean>;
   deleteTimeSlot: (id: string) => Promise<boolean>;
   selectSlot: (slot: TimeSlot) => void;
-  createBooking: (slotId: string) => Promise<string | null>;
+  createBooking: (slotId: string) => Promise<{ bookingId: string; stripePriceId: string } | null>;
   confirmPayment: (bookingId: string) => Promise<boolean>;
   getSlotById: (id: string) => TimeSlot | undefined;
   getUserBookings: () => Booking[];
@@ -29,7 +29,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
   const { toast } = useToast();
   const { currentUser } = useAuth();
 
-  const fetchTimeSlots = async () => {
+  const fetchTimeSlots = useCallback(async () => {
     setIsFetchingSlots(true);
     try {
       const response = await fetch('http://localhost:3000/api/events');
@@ -60,20 +60,24 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       setTimeSlots([]);
     } finally {
       setIsFetchingSlots(false);
+
+      
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchTimeSlots();
-  }, [toast]);
+  }, [fetchTimeSlots]);
 
   const addTimeSlot = async (date: Date, startTime: string, endTime: string, price: number): Promise<boolean> => {
     setIsLoading(true);
     try {
+      
       const formattedDate = format(date, 'yyyy-MM-dd');
       const response = await fetch('http://localhost:3000/api/events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // <--- Add this line
         body: JSON.stringify({ date: formattedDate, startTime, endTime, price }),
       });
 
@@ -108,12 +112,13 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       setIsLoading(true);
       const response = await fetch(`http://localhost:3000/api/events/${id}`, {
         method: 'DELETE',
+        credentials: 'include', // <--- Add this line
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to delete time slot');
+        throw new Error(data.error || 'Failed to delete time slot');
       }
       
       await fetchTimeSlots(); 
@@ -143,53 +148,54 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     return timeSlots.find(slot => slot.id === id);
   };
 
-  const createBooking = async (slotId: string): Promise<string | null> => {
-    try {
-      if (!currentUser) {
-        toast({
-          title: "Error",
-          description: "You must be logged in to book a slot",
-          variant: "destructive",
-        });
-        return null;
-      }
-
-      setIsLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      const slot = timeSlots.find(s => s.id === slotId);
-      if (!slot || slot.isBooked) {
-        toast({
-          title: "Error",
-          description: "This slot is no longer available",
-          variant: "destructive",
-        });
-        return null;
-      }
-      
-      const bookingId = `booking_${Date.now()}`;
-      const newBooking: Booking = {
-        id: bookingId,
-        userId: currentUser.id,
-        slotId: slot.id,
-        paymentStatus: 'pending',
-        createdAt: new Date().toISOString(),
-        slot: slot,
-      };
-      
-      setBookings(prev => [...prev, newBooking]);
-      
-      setTimeSlots(prev => prev.map(s => 
-        s.id === slotId ? { ...s, isBooked: true, bookedBy: currentUser.id } : s
-      ));
-      
-      return bookingId;
-    } catch (error) {
+  const createBooking = async (slotId: string): Promise<{ bookingId: string; stripePriceId: string } | null> => {
+    if (!currentUser) {
       toast({
-        title: "Error",
-        description: "Failed to create booking",
+        title: "Authentication Required",
+        description: "You must be logged in to book a slot.",
         variant: "destructive",
       });
+      return null;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch('http://localhost:3000/api/bookings/initiate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Send cookies with the request
+        body: JSON.stringify({ slotId }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Use the error message from the backend if available
+        throw new Error(data.message || 'Failed to initiate booking');
+      }
+
+      // No longer need to update local state here, backend handles status change
+      // setBookings(prev => [...prev, newBooking]);
+      // setTimeSlots(prev => prev.map(s => 
+      //   s.id === slotId ? { ...s, isBooked: true, bookedBy: currentUser.id } : s
+      // ));
+
+      // Refetch time slots to get the updated status from the server
+      await fetchTimeSlots();
+
+      // Return bookingId and stripePriceId for payment processing
+      return { bookingId: data.bookingId, stripePriceId: data.stripePriceId };
+
+    } catch (error) {
+      toast({
+        title: "Booking Error",
+        description: error.message || "Failed to initiate booking. The slot might already be taken.",
+        variant: "destructive",
+      });
+      // Refetch time slots in case the error was due to outdated local state
+      await fetchTimeSlots(); 
       return null;
     } finally {
       setIsLoading(false);

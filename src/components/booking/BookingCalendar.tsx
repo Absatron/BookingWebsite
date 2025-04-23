@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
@@ -63,9 +62,18 @@ const BookingCalendar = () => {
       return;
     }
 
-    const bookingId = await createBooking(selectedSlot.id);
-    if (bookingId) {
-      navigate(`/payment/${bookingId}`);
+    // Call the updated createBooking which now initiates the booking on the backend
+    const bookingResult = await createBooking(selectedSlot.id);
+    
+    // Check if the initiation was successful and we received the bookingId
+    if (bookingResult && bookingResult.bookingId) {
+      // Navigate to the payment page, passing the bookingId
+      // The stripePriceId is also available in bookingResult.stripePriceId if needed on the payment page
+      navigate(`/payment/${bookingResult.bookingId}`); 
+    } else {
+      // Error handling is done within createBooking (toast messages)
+      // Optionally add more specific UI feedback here if needed
+      console.error("Booking initiation failed or bookingId not received.");
     }
   };
 

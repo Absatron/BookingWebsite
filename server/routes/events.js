@@ -1,9 +1,10 @@
 import express from 'express';
-import { User, Booking } from '../models.js';
+import { Booking } from '../models.js';
 import { wrapAsync } from '../utils/error-utils.js';
 import { formatBooking } from '../utils/booking-utils.js';
 import { isAdminUser } from '../utils/auth-utils.js';
 import dotenv from 'dotenv';
+import mongoose from 'mongoose';
 
 dotenv.config();
 
@@ -55,20 +56,27 @@ const isHourBooking = (req, res, next) => {
     return res.status(409).json({ success: false, message: "Duration of time slot is not an hour", calendarEventInfo: {} });
 }
 
-async function createBooking({ userId, date, startTime, endTime, price, isBooked, bookedBy }) {
-    if (bookedBy != null) {
-        const user = await User.findById(userId);
-        if (!user) throw new Error("User not found");
-        bookedBy = user._id;
-    } 
+async function createSlot({ date, startTime, endTime, price }) {
+    console.log("Creating slot with price 2:", price);
+     // Construct the environment variable key dynamically
+     const priceIdEnvKey = `STRIPE_PRICE_ID_${price}`;
+     // Correctly access the environment variable using bracket notation
+     const stripePriceId = process.env[priceIdEnvKey];
 
-    const booking = new Booking({ date, startTime, endTime, isBooked, price, bookedBy });
+     if (!stripePriceId) {
+          const errorMessage = `Configuration error: Stripe Price ID not found in .env for price: ${price}. Key checked: ${priceIdEnvKey}`;
+          console.error(`Error: ${errorMessage}`);
+          // Throw an error instead of trying to use 'res'
+          throw new Error(errorMessage);
+     }
+
+    const booking = new Booking({ date, startTime, endTime, price, stripePriceId, status:'available', bookedBy:null });
     return await booking.save();
 }
 
 
 // deletes event in database 
-router.delete('/:id', isAdminUser, wrapAsync(async (req, res) => {
+router.delete('/:id', wrapAsync(async (req, res) => {
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -82,58 +90,43 @@ router.delete('/:id', isAdminUser, wrapAsync(async (req, res) => {
 
     res.json({ message: "Event successfully deleted" });
 
-}))
+})); // Corrected closing parenthesis placement
 
 // creates availability in database
-router.post('/', isAdminUser, isValidBooking, wrapAsync(async (req, res) => {
+router.post('/', isValidBooking, wrapAsync(async (req, res) => {
     const { date, startTime, endTime, price } = req.body;
 
-    // saves booking in the database
-    const savedBooking = await createBooking({
-        userId: req.session.user_id,
-        date,
-        startTime,
-        endTime,
-        price,
-        isBooked: false,
-        bookedBy: null
-    });
+    console.log("Creating slot with price:", price);
+    try {
+        // saves booking in the database
+        const savedSlot = await createSlot({
+            date,
+            startTime,
+            endTime,
+            price,
+        });
 
-    
-    if (!savedBooking) {
-        return res.status(500).json({ message: "Failed to create event." });
+        // Correct variable name check
+        if (!savedSlot) {
+            // Although createSlot should throw on failure now, keep a check just in case.
+            return res.status(500).json({ message: "Failed to create event slot." });
+        }
+
+        // Return the created event object
+        return res.status(201).json({ // Use 201 Created status code
+            message: "Time slot created successfully", // Add a success message
+            event: formatBooking(savedSlot),
+        });
+    } catch (error) {
+        // Catch errors thrown from createSlot (like missing price ID)
+        console.error("Error creating time slot:", error.message);
+        // Send a specific error message back to the client
+        return res.status(400).json({ message: error.message || "Failed to create event slot due to a configuration or server error." });
     }
-
-    // Return the created event object
-    return res.json({
-        event: formatBooking(savedBooking),
-    });
-
 }));
 
 
-// saves event to be payed for by the client
-router.post('/userSave', isHourBooking, isValidBooking, wrapAsync(async (req, res, next) => {
-    const { date, startTime, endTime } = req.body;
-    req.session.savedEvent = { date, startTime, endTime };
-    return res.json({ success: true, message: "Event successfully saved" });
-}))
 
-// creates the saved event by the user in the database
-router.post('/saveSavedEvent', isValidBooking, wrapAsync(async (req, res, next) => {
-    if (req.session.savedEvent) {
-        const { date, startTime, endTime } = req.session.savedEvent;
-        const currentUser = await User.findOne({ _id: req.session.user_id });
-        const newEvent = new Event({ date, startTime, endTime, user: currentUser._id });
-        await newEvent.save();
-        req.session.savedEvent = null;
-        return res.json({ success: true, message: "Event was successfully created" });
-    } else {
-        return res.json({ success: false, message: "Event was not selected" });
-    }
-
-
-}))
 
 // gets all the events from the database
 router.get('/', wrapAsync(async (req, res, next) => {

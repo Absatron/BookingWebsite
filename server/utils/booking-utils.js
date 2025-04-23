@@ -4,8 +4,10 @@ export function formatBooking(booking) {
         date: booking.date,
         startTime: booking.startTime,
         endTime: booking.endTime,
-        isBooked: booking.isBooked,
         price: booking.price,
+        stripePriceId: booking.stripePriceId,
+        status: booking.status,
         bookedBy: booking.bookedBy,
     };
 }
+

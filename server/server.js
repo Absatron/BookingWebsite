@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import eventsRouter from './routes/events.js';
 import paymentRouter from './routes/payment.js';
 import userRouter from './routes/user.js';
+import bookingsRouter from './routes/bookings.js'; // Import the new bookings router
 import session from 'express-session';
 import dotenv from 'dotenv';
 import cors from 'cors';
@@ -21,7 +22,7 @@ const sessionOptions = { secret: 'terriblesecret', resave: false, saveUninitiali
 
 // Configure CORS
 app.use(cors({
-    origin: 'http://localhost:8080', // Allow your frontend origin
+    origin: 'http://localhost:8080', // *** Ensure this matches your frontend port ***
     credentials: true, // Allow credentials (cookies, authorization headers, etc)
 }));
 
@@ -31,6 +32,7 @@ app.use(session(sessionOptions));
 app.use('/api/events', eventsRouter);
 app.use('/api/payment', paymentRouter);
 app.use('/api/user', userRouter);
+app.use('/api/bookings', bookingsRouter); // Mount the new bookings router
 
 // dev
 app.use(morgan('common'));

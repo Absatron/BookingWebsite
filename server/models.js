@@ -2,6 +2,8 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 import cron from 'node-cron';
 import { isBefore } from 'date-fns';
+import Joi from 'joi';
+const { required } = Joi;
 
 const userSchema = new mongoose.Schema({
     name: {
@@ -59,9 +61,15 @@ const bookingSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
-    isBooked: {
-        type: Boolean,
-        default: false
+    stripePriceId: {
+        type: String,
+        required: true
+    },
+    status: {
+        type: String,
+        enum: ['available', 'pending', 'confirmed'],
+        default: 'available',
+        required: true
     },
     bookedBy: {
         type: mongoose.Schema.Types.ObjectId, ref: User

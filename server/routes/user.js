@@ -2,7 +2,7 @@ import express from 'express';
 import { wrapAsync } from '../utils/error-utils.js';
 import { User } from '../models.js';
 import dotenv from 'dotenv';
-import { isAdminUser } from '../utils/auth-utils.js';
+import { checkIfEmailIsAdmin } from '../utils/auth-utils.js';
 
 dotenv.config();
 
@@ -48,7 +48,7 @@ router.post('/register', wrapAsync(async (req, res) => {
     // Proceed to register
     const newUser = new User({ name, email, password });
     await newUser.save();
-    const isAdmin = isAdminUser(email);
+    const isAdmin = checkIfEmailIsAdmin(email);
 
     req.session.regenerate((err) => {
         if (err) {
@@ -80,7 +80,7 @@ router.post('/login', wrapAsync(async (req, res) => {
         return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    const isAdmin = isAdminUser(email);
+    const isAdmin = checkIfEmailIsAdmin(email);
 
     // 🔒 Regenerate session to prevent fixation
     req.session.regenerate((err) => {
@@ -91,6 +91,8 @@ router.post('/login', wrapAsync(async (req, res) => {
 
         req.session.user_id = user._id;
         req.session.admin = isAdmin;
+
+        console.log('Session:', req.session);
 
         return res.json({
             userId: user._id,
