@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
-import { format, addDays, startOfDay, addHours } from 'date-fns';
+import { format } from 'date-fns';
 import { TimeSlot, Booking } from '@/types';
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from './AuthContext';
@@ -20,63 +20,61 @@ type BookingContextType = {
 
 const BookingContext = createContext<BookingContextType | undefined>(undefined);
 
-// Generate some initial mock data
-const generateMockSlots = (): TimeSlot[] => {
-  const slots: TimeSlot[] = [];
-  const today = startOfDay(new Date());
-  
-  for (let i = 1; i <= 14; i++) {
-    const day = addDays(today, i % 7);
-    
-    // Add morning slot
-    slots.push({
-      id: `slot_${i}_morning`,
-      date: format(day, 'yyyy-MM-dd'),
-      startTime: '09:00',
-      endTime: '10:00',
-      isBooked: false,
-      price: 75 + (i % 3) * 10,
-    });
-    
-    // Add afternoon slot
-    slots.push({
-      id: `slot_${i}_afternoon`,
-      date: format(day, 'yyyy-MM-dd'),
-      startTime: '14:00',
-      endTime: '15:00',
-      isBooked: i % 5 === 0, // Some slots already booked
-      price: 85 + (i % 4) * 10,
-    });
-  }
-  
-  return slots;
-};
-
 export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>(generateMockSlots());
+  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetchingSlots, setIsFetchingSlots] = useState(true);
   const { toast } = useToast();
   const { currentUser } = useAuth();
 
+  const fetchTimeSlots = async () => {
+    setIsFetchingSlots(true);
+    try {
+      const response = await fetch('http://localhost:3000/api/events');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to fetch time slots');
+      }
+      const data = await response.json();
+      
+      const fetchedSlots: TimeSlot[] = data.events.map((event) => ({ 
+        id: event.id, 
+        date: format(new Date(event.date), 'yyyy-MM-dd'), 
+        startTime: event.startTime,
+        endTime: event.endTime,
+        isBooked: event.isBooked, 
+        price: event.price,       
+        bookedBy: event.bookedBy,
+      }));
+      
+      setTimeSlots(fetchedSlots);
+    } catch (error) {
+      console.error("Error fetching time slots:", error);
+      toast({
+        title: "Error Loading Slots",
+        description: error.message || "Could not load available time slots.",
+        variant: "destructive",
+      });
+      setTimeSlots([]);
+    } finally {
+      setIsFetchingSlots(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTimeSlots();
+  }, [toast]);
+
   const addTimeSlot = async (date: Date, startTime: string, endTime: string, price: number): Promise<boolean> => {
     setIsLoading(true);
-
-    // requests backend to add booking
     try {
       const formattedDate = format(date, 'yyyy-MM-dd');
       const response = await fetch('http://localhost:3000/api/events', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          date: formattedDate, 
-          startTime, 
-          endTime, 
-          price 
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: formattedDate, startTime, endTime, price }),
       });
 
       const data = await response.json();
@@ -84,28 +82,14 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       if (!response.ok) {
         throw new Error(data.message || 'Failed to add time slot');
       }
-
-      // Use the event data returned from the backend to create the new slot
-      const backendEvent = data.event;
-      if (!backendEvent || !backendEvent.id) {
-        console.error("Backend did not return the created event object:", data);
-        throw new Error("Failed to retrieve created time slot from server.");
-      }
-
-      const newSlot: TimeSlot = {
-        id: backendEvent.id, 
-        date: backendEvent.date,
-        startTime: backendEvent.startTime,
-        endTime: backendEvent.endTime,
-        isBooked: backendEvent.isBooked,
-        price: backendEvent.price, 
-      };
-
-      setTimeSlots(prev => [...prev, newSlot]);
+      
       toast({
         title: "Success",
         description: data.message || "Time slot added successfully",
       });
+      
+      await fetchTimeSlots(); 
+      
       return true;
     } catch (error) {
       toast({
@@ -122,18 +106,27 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
   const deleteTimeSlot = async (id: string): Promise<boolean> => {
     try {
       setIsLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
+      const response = await fetch(`http://localhost:3000/api/events/${id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to delete time slot');
+      }
       
-      setTimeSlots(prev => prev.filter(slot => slot.id !== id));
+      await fetchTimeSlots(); 
+
       toast({
         title: "Success",
-        description: "Time slot deleted successfully",
+        description: data.message || "Time slot deleted successfully",
       });
       return true;
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to delete time slot",
+        description: error.message || "Failed to delete time slot",
         variant: "destructive",
       });
       return false;
@@ -162,7 +155,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
 
       setIsLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 800)); // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 800));
       
       const slot = timeSlots.find(s => s.id === slotId);
       if (!slot || slot.isBooked) {
@@ -186,7 +179,6 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       
       setBookings(prev => [...prev, newBooking]);
       
-      // Mark the slot as tentatively booked
       setTimeSlots(prev => prev.map(s => 
         s.id === slotId ? { ...s, isBooked: true, bookedBy: currentUser.id } : s
       ));
@@ -207,9 +199,8 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
   const confirmPayment = async (bookingId: string): Promise<boolean> => {
     try {
       setIsLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate payment processing
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Update booking status
       setBookings(prev => prev.map(booking => 
         booking.id === bookingId ? { ...booking, paymentStatus: 'completed' } : booking
       ));
@@ -240,7 +231,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     timeSlots,
     bookings,
     selectedSlot,
-    isLoading,
+    isLoading: isLoading || isFetchingSlots,
     addTimeSlot,
     deleteTimeSlot,
     selectSlot,

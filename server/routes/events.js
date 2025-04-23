@@ -127,19 +127,13 @@ router.post('/saveSavedEvent', isValidBooking, wrapAsync(async (req, res, next) 
 
 // gets all the events from the database
 router.get('/', wrapAsync(async (req, res, next) => {
-    const eventsDocuments = await Event.find({}).populate('user', 'name email');
-    const events = eventsDocuments.map(event => ({
-        id: event._id,
-        date: event.date,
-        startTime: event.startTime,
-        endTime: event.endTime,
-        userId: event.user._id,
-        userName: event.user.name,
-        setByAdmin: event.user.email === ADMIN_EMAIL,
-        allDay: event.startTime === event.endTime
-    }));
+    const bookingDocuments = await Booking.find({}); 
+    // Format bookings using the utility
+    const formattedBookings = bookingDocuments.map(formatBooking); 
 
-    return res.json({ success: true, events });
+
+    // Return the formatted bookings
+    return res.json({ events: formattedBookings }); // Keep 'events' key for consistency with frontend fetch
 }))
 
 export default router;
