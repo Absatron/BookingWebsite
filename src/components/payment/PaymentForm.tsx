@@ -1,229 +1,122 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+// Remove unused Input and Label imports if card details are removed
+// import { Input } from '@/components/ui/input';
+// import { Label } from '@/components/ui/label';
 import { useBooking } from '@/contexts/BookingContext';
 import { useToast } from '@/components/ui/use-toast';
 import { format, parseISO } from 'date-fns';
-import { Calendar, Clock, CreditCard, DollarSign, CheckCircle } from 'lucide-react';
+// Remove CreditCard if input is removed
+// import { Calendar, Clock, CreditCard, DollarSign, CheckCircle } from 'lucide-react';
+import { Calendar, Clock, DollarSign } from 'lucide-react'; // Removed CheckCircle and CreditCard
 
 const PaymentForm = () => {
   const { bookingId } = useParams<{ bookingId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { bookings, confirmPayment, isLoading, getSlotById } = useBooking();
-  
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardName, setCardName] = useState('');
-  const [expiryDate, setExpiryDate] = useState('');
-  const [cvv, setCvv] = useState('');
-  const [processing, setProcessing] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-  
+  // Remove confirmPayment if not used directly here anymore
+  const { bookings, isLoading, getSlotById } = useBooking();
+
+  // Remove state related to card details and success/processing simulation
+  // const [cardNumber, setCardNumber] = useState('');
+  // const [cardName, setCardName] = useState('');
+  // const [expiryDate, setExpiryDate] = useState('');
+  // const [cvv, setCvv] = useState('');
+  const [processing, setProcessing] = useState(false); // Keep processing to disable button during form submission
+  // const [isSuccess, setIsSuccess] = useState(false);
+
   // Find the booking by ID
   const booking = bookingId ? bookings.find(b => b.id === bookingId) : null;
   const timeSlot = booking ? getSlotById(booking.slotId) : null;
-  
+
   useEffect(() => {
-    if (!bookingId || !booking) {
+    // Keep this effect for initial booking validation
+    if (!isLoading && (!bookingId || !booking || !timeSlot)) {
       toast({
         title: "Error",
-        description: "Booking not found",
+        description: "Booking details not found or invalid.",
         variant: "destructive",
       });
       navigate('/booking');
     }
-  }, [bookingId, booking, navigate, toast]);
-  
-  // Format card number with spaces
-  const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\s/g, '').replace(/\D/g, '');
-    let formattedValue = '';
-    
-    for (let i = 0; i < value.length; i++) {
-      if (i > 0 && i % 4 === 0) {
-        formattedValue += ' ';
-      }
-      formattedValue += value[i];
-    }
-    
-    setCardNumber(formattedValue.slice(0, 19)); // 16 digits + 3 spaces
-  };
-  
-  // Format expiry date with slash
-  const handleExpiryDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, '');
-    
-    if (value.length <= 2) {
-      setExpiryDate(value);
-    } else {
-      setExpiryDate(`${value.slice(0, 2)}/${value.slice(2, 4)}`);
-    }
-  };
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Basic validation
-    if (cardNumber.replace(/\s/g, '').length !== 16) {
-      toast({
-        title: "Invalid Card Number",
-        description: "Please enter a valid 16-digit card number",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (expiryDate.length !== 5) {
-      toast({
-        title: "Invalid Expiry Date",
-        description: "Please enter a valid expiry date (MM/YY)",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (cvv.length !== 3) {
-      toast({
-        title: "Invalid CVV",
-        description: "Please enter a valid 3-digit CVV",
-        variant: "destructive",
-      });
-      return;
-    }
-    
+  }, [bookingId, booking, timeSlot, navigate, toast, isLoading]);
+
+  // Remove card detail formatting handlers
+  // const handleCardNumberChange = ...
+  // const handleExpiryDateChange = ...
+
+  // Remove the simulation handleSubmit function
+  // const handleSubmit = async (e: React.FormEvent) => { ... };
+
+  // Handle form submission start
+  const handleFormSubmit = () => {
     setProcessing(true);
-    
-    if (bookingId) {
-      // Simulate payment processing
-      setTimeout(async () => {
-        const success = await confirmPayment(bookingId);
-        if (success) {
-          setIsSuccess(true);
-          setTimeout(() => {
-            navigate(`/confirmation/${bookingId}`);
-          }, 2000);
-        } else {
-          toast({
-            title: "Payment Failed",
-            description: "There was an error processing your payment. Please try again.",
-            variant: "destructive",
-          });
-          setProcessing(false);
-        }
-      }, 2000);
-    }
+    // The actual submission is handled by the form's action attribute
+    // You might want additional client-side checks here before allowing submission
   };
-  
-  if (!booking || !timeSlot) {
+
+
+  if (isLoading || !booking || !timeSlot) {
     return <div className="text-center py-12">Loading...</div>;
   }
-  
-  if (isSuccess) {
-    return (
-      <Card className="w-full animate-fade-in">
-        <CardContent className="pt-6 flex flex-col items-center justify-center text-center">
-          <div className="rounded-full bg-green-100 p-3 mb-4">
-            <CheckCircle className="h-12 w-12 text-green-600" />
-          </div>
-          <h2 className="text-2xl font-bold text-green-600 mb-2">Payment Successful!</h2>
-          <p className="text-gray-500 mb-4">Your booking has been confirmed.</p>
-          <p className="text-gray-500">Redirecting to confirmation page...</p>
-        </CardContent>
-      </Card>
-    );
-  }
-  
+
+  // Remove the isSuccess block, Stripe handles redirection
+  // if (isSuccess) { ... }
+
   return (
     <div className="grid gap-8 grid-cols-1 lg:grid-cols-3">
-      <Card className="lg:col-span-2 animate-fade-in">
-        <CardHeader>
-          <CardTitle>Payment Details</CardTitle>
-          <CardDescription>Complete your booking by providing payment information</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="cardName">Cardholder Name</Label>
-                <Input
-                  id="cardName"
-                  placeholder="John Smith"
-                  value={cardName}
-                  onChange={(e) => setCardName(e.target.value)}
-                  required
-                  disabled={processing}
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="cardNumber">Card Number</Label>
-                <div className="relative">
-                  <Input
-                    id="cardNumber"
-                    placeholder="1234 5678 9012 3456"
-                    value={cardNumber}
-                    onChange={handleCardNumberChange}
-                    maxLength={19}
-                    required
-                    disabled={processing}
-                  />
-                  <CreditCard className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="expiryDate">Expiry Date</Label>
-                  <Input
-                    id="expiryDate"
-                    placeholder="MM/YY"
-                    value={expiryDate}
-                    onChange={handleExpiryDateChange}
-                    maxLength={5}
-                    required
-                    disabled={processing}
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="cvv">CVV</Label>
-                  <Input
-                    id="cvv"
-                    placeholder="123"
-                    type="password"
-                    value={cvv}
-                    onChange={(e) => setCvv(e.target.value.replace(/\D/g, '').slice(0, 3))}
-                    maxLength={3}
-                    required
-                    disabled={processing}
-                  />
-                </div>
-              </div>
+      {/* Update form to POST directly to the backend endpoint */}
+      <form
+        action="http://localhost:3000/api/payment/create-checkout-session" // Adjust if your API route is different
+        method="POST"
+        onSubmit={handleFormSubmit} // Corrected: Use handleFormSubmit
+        className="lg:col-span-2" // Apply grid span to the form itself
+      >
+        {/* Add hidden inputs if you need to pass data like bookingId or priceId */}
+        {/* Example: <input type="hidden" name="bookingId" value={bookingId} /> */}
+        {/* Example: <input type="hidden" name="priceId" value={timeSlot.stripePriceId} /> */}
+        {/* Ensure your backend reads these values if needed */}
+
+        <Card className="animate-fade-in">
+          <CardHeader>
+            <CardTitle>Proceed to Payment</CardTitle>
+            <CardDescription>You will be redirected to Stripe to complete your payment securely.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {/* Remove card input fields */}
+            <div className="space-y-4 text-sm text-gray-600">
+              <p>Click the button below to proceed to our secure payment gateway powered by Stripe.</p>
+              <p>You are booking the time slot for:</p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>Date: {format(parseISO(timeSlot.date), 'EEEE, MMMM d, yyyy')}</li>
+                <li>Time: {timeSlot.startTime} - {timeSlot.endTime}</li>
+                <li>Price: ${timeSlot.price.toFixed(2)}</li>
+              </ul>
             </div>
-          </form>
-        </CardContent>
-        <CardFooter className="flex justify-between">
-          <Button 
-            variant="outline" 
-            onClick={() => navigate('/booking')}
-            disabled={processing}
-          >
-            Back
-          </Button>
-          <Button 
-            className="bg-booking-primary hover:bg-opacity-90"
-            onClick={handleSubmit}
-            disabled={processing}
-          >
-            {processing ? 'Processing...' : `Pay $${timeSlot.price.toFixed(2)}`}
-          </Button>
-        </CardFooter>
-      </Card>
-      
+          </CardContent>
+          <CardFooter className="flex justify-between">
+            <Button
+              variant="outline"
+              type="button" // Change type to button to prevent form submission
+              onClick={() => navigate('/booking')}
+              disabled={processing}
+            >
+              Back
+            </Button>
+            <Button
+              type="submit" // Change type to submit
+              className="bg-booking-primary hover:bg-opacity-90"
+              disabled={processing || !booking || !timeSlot} // Disable if loading or no slot
+            >
+              {processing ? 'Redirecting...' : `Proceed to Pay $${timeSlot.price.toFixed(2)}`}
+            </Button>
+          </CardFooter>
+        </Card>
+      </form>
+
+      {/* Booking Summary Card remains mostly the same */}
       <Card className="animate-fade-in">
         <CardHeader>
           <CardTitle>Booking Summary</CardTitle>
@@ -246,12 +139,11 @@ const PaymentForm = () => {
             </div>
           </div>
           <div className="text-xs text-gray-500 mt-4">
-            <p>* This is a demo payment form. No actual payments will be processed.</p>
-            <p>* Enter any card details for testing purposes.</p>
+             <p>* You will be redirected to Stripe's secure checkout page.</p>
           </div>
         </CardContent>
-      </Card>
-    </div>
+      </Card> {/* Corrected: Added closing tag for Card */}
+    </div> // Corrected: Added closing tag for div
   );
 };
 

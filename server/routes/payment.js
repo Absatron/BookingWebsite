@@ -5,8 +5,7 @@ import Stripe from 'stripe';
 
 dotenv.config();
 
-const { STRIPE_SECRET_KEY } = process.env;
-const stripe = new Stripe(STRIPE_SECRET_KEY);
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const router = express.Router();
 

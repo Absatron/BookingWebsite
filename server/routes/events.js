@@ -2,6 +2,7 @@ import express from 'express';
 import { User, Booking } from '../models.js';
 import { wrapAsync } from '../utils/error-utils.js';
 import { formatBooking } from '../utils/booking-utils.js';
+import { isAdminUser } from '../utils/auth-utils.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -67,15 +68,24 @@ async function createBooking({ userId, date, startTime, endTime, price, isBooked
 
 
 // deletes event in database 
-router.delete('/:id', wrapAsync(async (req, res) => {
+router.delete('/:id', isAdminUser, wrapAsync(async (req, res) => {
     const { id } = req.params;
-    await Event.findByIdAndDelete(id);
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ error: "Invalid ID format" });
+    }
+
+    const booking = await Booking.findByIdAndDelete(id);
+    if (!booking) {
+        return res.status(404).json({ error: "Event not found" });
+    }
+
     res.json({ message: "Event successfully deleted" });
 
 }))
 
-// creates event in database
-router.post('/', isValidBooking, wrapAsync(async (req, res) => {
+// creates availability in database
+router.post('/', isAdminUser, isValidBooking, wrapAsync(async (req, res) => {
     const { date, startTime, endTime, price } = req.body;
 
     // saves booking in the database
@@ -128,12 +138,15 @@ router.post('/saveSavedEvent', isValidBooking, wrapAsync(async (req, res, next) 
 // gets all the events from the database
 router.get('/', wrapAsync(async (req, res, next) => {
     const bookingDocuments = await Booking.find({}); 
-    // Format bookings using the utility
+    
+    if (!bookingDocuments) {
+        return res.status(500).json({ message: "Failed to fetch events." });
+    }
+
     const formattedBookings = bookingDocuments.map(formatBooking); 
 
-
     // Return the formatted bookings
-    return res.json({ events: formattedBookings }); // Keep 'events' key for consistency with frontend fetch
+    return res.json({ events: formattedBookings });
 }))
 
 export default router;
