@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom'; // Import useLocation
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 // Removed unused context import
-// import { useBooking } from '@/contexts/BookingContext';
 import { useToast } from '@/components/ui/use-toast';
 import { format, parseISO } from 'date-fns';
-import { Calendar, Clock, DollarSign } from 'lucide-react';
+import { Calendar, Clock, DollarSign, Loader2 } from 'lucide-react'; // Added Loader2
 import { Booking as BookingType } from '@/types'; // Assuming Booking type is defined in types/index.ts
 import mongoose from 'mongoose'; // Import mongoose to use its types if needed, or define ObjectId type
 
 // Define a more specific type if BookingType uses string for _id
-interface FetchedBooking extends Omit<BookingType, '_id' | 'bookedBy' | 'date'> {
+interface FetchedBooking extends Omit<BookingType, '_id' | 'bookedBy' | 'date' | 'isBooked' | 'paymentStatus'> {
   _id: string | mongoose.Types.ObjectId; // Or just string if always converted
   bookedBy?: string | mongoose.Types.ObjectId; // Optional if not always populated
   date: string; // Expecting ISO string from backend
@@ -19,29 +18,39 @@ interface FetchedBooking extends Omit<BookingType, '_id' | 'bookedBy' | 'date'> 
   price: number; // Ensure price is included
   startTime: string; // Ensure startTime is included
   endTime: string; // Ensure endTime is included
+  status: 'available' | 'pending' | 'completed' | 'cancelled'; // Add status field
 }
 
 
 const PaymentForm = () => {
   const { bookingId } = useParams<{ bookingId: string }>();
   const navigate = useNavigate();
+  const location = useLocation(); // Get location object
   const { toast } = useToast();
-  // Removed context usage for booking/slot data
-  // const { bookings, isLoading, getSlotById } = useBooking();
+  // Removed context usage
 
   // State for fetched booking details and loading status
   const [bookingDetails, setBookingDetails] = useState<FetchedBooking | null>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(true);
-  const [processing, setProcessing] = useState(false);
+  const [processing, setProcessing] = useState(false); // For form submission state
 
-  // Removed state related to card details
-  // ...
+  // Check for cancellation query parameter
+  const queryParams = new URLSearchParams(location.search);
+  const cancelled = queryParams.get('cancelled');
 
-  // Removed context-based booking/slot finding
-  // const booking = bookingId ? bookings.find(b => b.id === bookingId) : null;
-  // const timeSlot = booking ? getSlotById(booking.slotId) : null;
 
   useEffect(() => {
+    // Show toast if redirected back from cancellation
+    if (cancelled === 'true') {
+      toast({
+        title: "Payment Cancelled",
+        description: "Your booking was not completed. You can try again.",
+        variant: "default",
+      });
+      // Optional: Clean the URL query parameter
+      // navigate(`/payment/${bookingId}`, { replace: true });
+    }
+
     // Fetch details when component mounts or bookingId changes
     if (!bookingId) {
       toast({
@@ -49,12 +58,13 @@ const PaymentForm = () => {
         description: "No booking ID provided.",
         variant: "destructive",
       });
-      navigate('/booking');
+      navigate('/booking'); // Redirect if no ID
       return;
     }
 
     const fetchBookingDetails = async () => {
       setIsLoadingDetails(true);
+      setProcessing(false); // Reset processing state on fetch
       try {
         // Make sure credentials are included if your backend route needs the session
         const response = await fetch(`http://localhost:3000/api/bookings/${bookingId}`, {
@@ -65,30 +75,38 @@ const PaymentForm = () => {
         if (!response.ok) {
           throw new Error(data.message || 'Failed to fetch booking details.');
         }
-         // Ensure the fetched data matches the FetchedBooking structure
-        setBookingDetails(data as FetchedBooking);
-      } catch (error) { // Catch specific error type
+
+        const fetchedBooking = data as FetchedBooking;
+
+        // Check if the booking is still 'pending' before allowing payment
+        if (fetchedBooking.status !== 'pending') {
+            toast({
+                title: "Booking Not Payable",
+                description: `This booking is already ${fetchedBooking.status}. You cannot proceed with payment.`,
+                variant: "destructive",
+            });
+            navigate('/my-bookings'); // Redirect to user's bookings or dashboard
+            return;
+        }
+
+        setBookingDetails(fetchedBooking);
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : "Booking details not found or invalid.";
         console.error("Error fetching booking details:", error);
         toast({
           title: "Error Fetching Details",
-          description: error.message || "Booking details not found or invalid.",
+          description: errorMsg,
           variant: "destructive",
         });
-        navigate('/booking');
+        navigate('/booking'); // Redirect on error
       } finally {
         setIsLoadingDetails(false);
       }
     };
 
     fetchBookingDetails();
-    // Removed context dependencies from the dependency array
-  }, [bookingId, navigate, toast]);
+  }, [bookingId, navigate, toast, cancelled]); // Add cancelled to dependency array
 
-  // Removed card detail formatting handlers
-  // ...
-
-  // Removed simulation handleSubmit
-  // ...
 
   // Handle form submission start
   const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -102,34 +120,51 @@ const PaymentForm = () => {
        });
        return;
      }
-    setProcessing(true);
-    // Form action handles the rest
+    setProcessing(true); // Set processing state to true
+    // Form action handles the rest (redirect to Stripe)
+  };
+
+  // Handle cancellation button click
+  const handleCancel = async () => {
+      if (!bookingId) return;
+      // Optional: Implement backend call to explicitly cancel the 'pending' booking
+      // try {
+      //   await fetch(`/api/bookings/${bookingId}/cancel`, { method: 'POST', credentials: 'include' });
+      //   toast({ title: "Booking Cancelled", description: "Your pending booking has been cancelled." });
+      // } catch (error) {
+      //   console.error("Failed to cancel booking:", error);
+      //   toast({ title: "Error", description: "Could not cancel booking.", variant: "destructive" });
+      // }
+      navigate('/booking'); // Navigate back regardless of backend call success/failure for now
   };
 
 
   // Updated loading condition
   if (isLoadingDetails) {
-    return <div className="text-center py-12">Loading Booking Details...</div>;
+    return (
+        <div className="flex justify-center items-center min-h-[300px]">
+            <Loader2 className="h-8 w-8 animate-spin text-booking-primary" />
+            <span className="ml-2">Loading Booking Details...</span>
+        </div>
+    );
   }
 
   // Updated condition for missing details after loading
   if (!bookingDetails) {
     // Error toast and navigation are handled in useEffect, this is a fallback
-    return <div className="text-center py-12 text-red-500">Could not load booking details. Please try again.</div>;
+    return <div className="text-center py-12 text-red-500">Could not load booking details. Please try again or select a different slot.</div>;
   }
 
   // Destructure AFTER checking !bookingDetails
   const { date, startTime, endTime, price, stripePriceId } = bookingDetails;
 
-  // Removed isSuccess block
-  // ...
 
   return (
     <div className="grid gap-8 grid-cols-1 lg:grid-cols-3">
       <form
         action="http://localhost:3000/api/payment/create-checkout-session"
         method="POST"
-        onSubmit={handleFormSubmit} // Use the handler
+        onSubmit={handleFormSubmit} // Use the handler to set processing state
         className="lg:col-span-2"
       >
         {/* Pass necessary data to the backend */}
@@ -138,16 +173,15 @@ const PaymentForm = () => {
         {/* Ensure stripePriceId exists before rendering */}
         {stripePriceId && <input type="hidden" name="stripePriceId" value={stripePriceId} />}
         {/* Pass price for potential backend verification */}
-         <input type="hidden" name="bookingPrice" value={price} />
+         <input type="hidden" name="bookingPrice" value={price.toString()} />
 
 
         <Card className="animate-fade-in">
           <CardHeader>
             <CardTitle>Proceed to Payment</CardTitle>
-            <CardDescription>You will be redirected to Stripe to complete your payment securely.</CardDescription>
+            <CardDescription>Review your booking details and proceed to Stripe for secure payment.</CardDescription>
           </CardHeader>
           <CardContent>
-            {/* Removed card input fields */}
             <div className="space-y-4 text-sm text-gray-600">
               <p>Click the button below to proceed to our secure payment gateway powered by Stripe.</p>
               <p>You are booking the time slot for:</p>
@@ -163,25 +197,32 @@ const PaymentForm = () => {
             <Button
               variant="outline"
               type="button" // Important: type="button" prevents form submission
-              onClick={() => navigate('/booking')}
-              disabled={processing}
+              onClick={handleCancel} // Use cancel handler
+              disabled={processing} // Disable if redirecting to Stripe
             >
-              Back
+              Cancel Booking
             </Button>
             <Button
               type="submit" // This button submits the form
-              className="bg-booking-primary hover:bg-opacity-90"
+              className="bg-booking-primary hover:bg-opacity-90 min-w-[180px]" // Added min-width
               // Disable if processing, loading, or essential data is missing
               disabled={processing || isLoadingDetails || !stripePriceId}
             >
-              {processing ? 'Redirecting...' : `Proceed to Pay $${price.toFixed(2)}`}
+              {processing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Redirecting...
+                  </>
+               ) : (
+                 `Proceed to Pay $${price.toFixed(2)}`
+               )}
             </Button>
           </CardFooter>
         </Card>
       </form>
 
       {/* Booking Summary Card - uses fetched details */}
-      <Card className="animate-fade-in">
+      <Card className="animate-fade-in lg:col-span-1">
         <CardHeader>
           <CardTitle>Booking Summary</CardTitle>
         </CardHeader>
@@ -205,6 +246,7 @@ const PaymentForm = () => {
           </div>
           <div className="text-xs text-gray-500 mt-4">
              <p>* You will be redirected to Stripe's secure checkout page.</p>
+             <p>* Your booking is reserved for a limited time pending payment.</p>
           </div>
         </CardContent>
       </Card>

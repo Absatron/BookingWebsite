@@ -1,28 +1,85 @@
-
-import React from 'react';
+import React, { useState, useEffect } from 'react'; // Added useState, useEffect
 import { format, parseISO } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, DollarSign } from 'lucide-react';
+import { Calendar, Clock, DollarSign, Loader2 } from 'lucide-react'; // Added Loader2
 import { useBooking } from '@/contexts/BookingContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { Booking } from '@/types'; // Import the Booking type
 
 const UserBookings = () => {
   const { getUserBookings } = useBooking();
   const { currentUser } = useAuth();
-  
-  const userBookings = getUserBookings();
-  
+  const [userBookings, setUserBookings] = useState<Booking[]>([]); // Added state for bookings
+  const [isLoading, setIsLoading] = useState<boolean>(true); // Added loading state
+  const [error, setError] = useState<string | null>(null); // Added error state
+
+  // useEffect to fetch bookings on mount and when user changes
+  useEffect(() => {
+    const fetchBookings = async () => {
+      if (!currentUser) {
+        setIsLoading(false);
+        setUserBookings([]); // Clear bookings if user logs out
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null); // Reset error state
+      try {
+        // Call the async function from context
+        const bookingsData = await getUserBookings();
+        setUserBookings(bookingsData);
+      } catch (err) {
+        console.error("Failed to fetch user bookings:", err);
+        setError(err instanceof Error ? err.message : "An unexpected error occurred.");
+        setUserBookings([]); // Clear bookings on error
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchBookings();
+  }, [currentUser, getUserBookings]); // Rerun effect if user or fetch function changes
+
+  // Handle logged out state
   if (!currentUser) {
     return <div>Please log in to view your bookings</div>;
   }
-  
+
+  // Handle loading state
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-booking-primary" />
+        <span className="ml-2 text-gray-600">Loading your bookings...</span>
+      </div>
+    );
+  }
+
+  // Handle error state
+  if (error) {
+     return (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+             <Calendar className="h-12 w-12 text-red-300 mb-4" />
+             <h3 className="text-xl font-medium text-red-700 mb-2">Error Loading Bookings</h3>
+             <p className="text-red-600 text-center max-w-md">
+               Could not load your bookings. Please try again later. <br/>
+               <span className="text-sm">({error})</span>
+             </p>
+          </CardContent>
+        </Card>
+     );
+  }
+
+  // Render bookings or empty state
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-booking-primary">My Bookings</h1>
-      
+
       {userBookings.length === 0 ? (
         <Card>
+          {/* ... existing empty state card content ... */}
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Calendar className="h-12 w-12 text-gray-300 mb-4" />
             <h3 className="text-xl font-medium text-gray-700 mb-2">No Bookings Yet</h3>
@@ -33,27 +90,30 @@ const UserBookings = () => {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Use the userBookings state variable */}
           {userBookings.map((booking) => (
             <Card key={booking.id} className="animate-fade-in">
+              {/* ... existing card header and content ... */}
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
                   <div>
-                    <CardTitle>Booking #{booking.id.slice(-4)}</CardTitle>
+                    {/* Use slice for a shorter ID representation */}
+                    <CardTitle>Booking #{booking.id.slice(-6)}</CardTitle>
                     <CardDescription>
                       Created on {format(new Date(booking.createdAt), 'MMM d, yyyy')}
                     </CardDescription>
                   </div>
-                  <Badge 
+                  <Badge
                     className={
-                      booking.paymentStatus === 'completed' 
+                      booking.paymentStatus === 'completed'
                         ? 'bg-green-100 text-green-800'
                         : booking.paymentStatus === 'pending'
                         ? 'bg-yellow-100 text-yellow-800'
                         : 'bg-red-100 text-red-800'
                     }
                   >
-                    {booking.paymentStatus === 'completed' 
-                      ? 'Confirmed' 
+                    {booking.paymentStatus === 'completed'
+                      ? 'Confirmed'
                       : booking.paymentStatus === 'pending'
                       ? 'Pending'
                       : 'Failed'
@@ -65,6 +125,7 @@ const UserBookings = () => {
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
                     <Calendar className="h-5 w-5 text-booking-primary" />
+                    {/* Ensure date is parsed correctly */}
                     <span>{format(parseISO(booking.slot.date), 'EEEE, MMMM d, yyyy')}</span>
                   </div>
                   <div className="flex items-center gap-2">

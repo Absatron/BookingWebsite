@@ -4,7 +4,7 @@ import mongoose from 'mongoose';
 import eventsRouter from './routes/events.js';
 import paymentRouter from './routes/payment.js';
 import userRouter from './routes/user.js';
-import bookingsRouter from './routes/bookings.js'; // Import the new bookings router
+import bookingsRouter from './routes/bookings.js'; 
 import session from 'express-session';
 import dotenv from 'dotenv';
 import cors from 'cors';
@@ -18,7 +18,19 @@ mongoose.connect('mongodb://127.0.0.1:27017/bookingApp')
     .then(() => console.log("CONNECTED TO DATABASE"))
     .catch((err) => console.log(err))
 
-const sessionOptions = { secret: 'terriblesecret', resave: false, saveUninitialized: false };
+const sessionOptions = { 
+        secret: 'terriblesecret', 
+        resave: false, 
+        saveUninitialized: false,
+        cookie: {
+            // Set the session to expire after 20 mins (in milliseconds)
+            maxAge: 0.3 * 60 * 60 * 1000, 
+            // Consider setting httpOnly to true for security (prevents client-side script access)
+            // httpOnly: true, 
+            // Consider setting secure to true if using HTTPS
+            // secure: process.env.NODE_ENV === 'production' 
+        } 
+    };
 
 // Configure CORS
 app.use(cors({
@@ -27,12 +39,20 @@ app.use(cors({
 }));
 
 app.use(express.static("dist"));
-app.use(express.json());
-app.use(session(sessionOptions));
-app.use('/api/events', eventsRouter);
+
+// Mount payment router BEFORE global JSON parsing for webhook handling
 app.use('/api/payment', paymentRouter);
+
+// Global middleware (applied after payment router)
+app.use(express.json());
+//app.use(express.urlencoded({ extended: true }))
+app.use(session(sessionOptions));
+
+// Other routers
+app.use('/api/events', eventsRouter);
 app.use('/api/user', userRouter);
-app.use('/api/bookings', bookingsRouter); // Mount the new bookings router
+app.use('/api/bookings', bookingsRouter); 
+
 
 // dev
 app.use(morgan('common'));
@@ -45,6 +65,7 @@ app.use((req, res) => {
 
 // error handling
 app.use((err, req, res, next) => {
+    
     console.log("Error handled")
     console.log(err)
     const { status = 500, message = 'Something went wrong' } = err;

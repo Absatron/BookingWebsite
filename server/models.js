@@ -73,6 +73,9 @@ const bookingSchema = new mongoose.Schema({
     },
     bookedBy: {
         type: mongoose.Schema.Types.ObjectId, ref: User
+    },
+    createdAt: {
+        type: Date
     }
 })
 

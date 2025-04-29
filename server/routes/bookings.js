@@ -13,7 +13,7 @@ router.post('/initiate', wrapAsync(async (req, res) => {
     console.log(req.session);
 
     // Add a check for userId here since isAuthenticated is removed
-    // PROBLEM WITH THIS: userId 
+    // PROBLEM WITH THIS: userId - gets logged out too quickly
     if (!userId) {
         return res.status(401).json({ message: 'Authentication required. Please log in.' });
     }
@@ -73,5 +73,26 @@ router.get('/:bookingId', wrapAsync(async (req, res) => {
 }));
 
 // Add other booking-related routes here (e.g., confirm payment, get user bookings)
+
+// Get user bookings
+router.get('/', wrapAsync(async (req, res) => {
+    const userId = req.session.user_id;
+
+    if (!userId) {
+        return res.status(401).json({ message: 'Authentication required. Please log in.' });
+    }
+
+    // Fetch bookings for the logged-in user
+    const bookings = await Booking.find({ bookedBy: userId });
+
+    // If no bookings are found, return 200 OK with an empty array
+    // This is often preferred over 404 for list endpoints
+    if (!bookings) { // Should technically check bookings.length === 0 as find returns [] not null
+        return res.status(200).json([]);
+    }
+
+    // Return the bookings if found
+    res.status(200).json(bookings);
+}));
 
 export default router;

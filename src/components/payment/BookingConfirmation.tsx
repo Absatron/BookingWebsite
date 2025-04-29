@@ -1,41 +1,136 @@
-
-import React, { useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom'; // Import useLocation
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useBooking } from '@/contexts/BookingContext';
 import { useToast } from '@/components/ui/use-toast';
 import { format, parseISO } from 'date-fns';
-import { Calendar, Clock, DollarSign, CheckCircle, Download } from 'lucide-react';
+import { Calendar, Clock, DollarSign, CheckCircle, Download, Loader2 } from 'lucide-react'; // Added Loader2
+import { Booking as BookingType } from '@/types'; // Assuming Booking type is defined
+
+// Define a type for the fetched booking details, ensure it includes status
+interface ConfirmedBooking extends Omit<BookingType, '_id' | 'date' | 'isBooked' | 'paymentStatus'> {
+  _id: string;
+  date: string; // Expecting ISO string
+  startTime: string;
+  endTime: string;
+  price: number;
+  status: 'available' | 'pending' | 'completed' | 'cancelled'; // Add status field
+  // Add other fields returned by your backend /api/bookings/:bookingId endpoint
+}
+
 
 const BookingConfirmation = () => {
   const { bookingId } = useParams<{ bookingId: string }>();
   const navigate = useNavigate();
+  const location = useLocation(); // Get location object
   const { toast } = useToast();
-  const { bookings, getSlotById } = useBooking();
-  
-  // Find the booking by ID
-  const booking = bookingId ? bookings.find(b => b.id === bookingId) : null;
-  const timeSlot = booking ? getSlotById(booking.slotId) : null;
-  
+
+  const [confirmedBooking, setConfirmedBooking] = useState<ConfirmedBooking | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Extract session_id from query params (optional, for potential verification)
+  const queryParams = new URLSearchParams(location.search);
+  const sessionId = queryParams.get('session_id');
+
+
   useEffect(() => {
-    if (!bookingId || !booking || booking.paymentStatus !== 'completed') {
-      toast({
-        title: "Error",
-        description: "Booking confirmation not found",
-        variant: "destructive",
-      });
-      navigate('/dashboard');
+    if (!bookingId) {
+      setError("No booking ID provided.");
+      setIsLoading(false);
+      navigate('/dashboard'); // Or appropriate error page/redirect
+      return;
     }
-  }, [bookingId, booking, navigate, toast]);
-  
-  if (!booking || !timeSlot) {
-    return <div className="text-center py-12">Loading...</div>;
+
+    const fetchBookingStatus = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        // Fetch booking details directly from the backend
+        const response = await fetch(`http://localhost:3000/api/bookings/${bookingId}`, {
+          credentials: 'include', // Include if auth is needed to view booking
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || 'Failed to fetch booking details.');
+        }
+
+        const fetchedBooking = data as ConfirmedBooking;
+
+        // Check if the status is 'completed' (or 'confirmed' depending on your backend logic)
+        // This status should have been updated by the webhook
+        if (fetchedBooking.status !== 'completed') {
+           // Optional: Add a small delay and retry fetch in case webhook is slightly delayed
+           // await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s
+           // const retryResponse = await fetch(...); // Retry fetch
+           // ... handle retry response ...
+           // If still not completed after retry:
+           console.warn(`Booking ${bookingId} status is ${fetchedBooking.status}, expected 'completed'. Payment might be processing.`);
+           toast({
+             title: "Payment Processing",
+             description: "Your payment might still be processing. Please check 'My Bookings' shortly or contact support if this persists.",
+             variant: "default", // Use default or warning variant
+           });
+           // Navigate to a pending page or dashboard instead of showing confirmation
+           navigate('/my-bookings'); // Redirect to user's bookings page
+           return; // Stop further processing
+        }
+
+        setConfirmedBooking(fetchedBooking);
+
+      } catch (err) {
+        console.error("Error fetching booking confirmation:", err);
+        const errorMsg = err instanceof Error ? err.message : "Could not load booking confirmation.";
+        setError(errorMsg);
+        toast({
+          title: "Error",
+          description: errorMsg,
+          variant: "destructive",
+        });
+         navigate('/dashboard'); // Redirect on error
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchBookingStatus();
+
+  }, [bookingId, navigate, toast, sessionId]); // Added sessionId to dependencies (optional)
+
+  // Loading State
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-[300px]">
+        <Loader2 className="h-8 w-8 animate-spin text-booking-primary" />
+        <span className="ml-2">Loading Confirmation...</span>
+      </div>
+    );
   }
-  
-  // Generate a booking reference number
+
+  // Error State
+  if (error || !confirmedBooking) {
+    return (
+       <div className="max-w-2xl mx-auto text-center py-12">
+         <Card>
+           <CardHeader>
+             <CardTitle className="text-red-600">Confirmation Error</CardTitle>
+           </CardHeader>
+           <CardContent>
+             <p>{error || "Booking details could not be loaded."}</p>
+             <Button asChild variant="link" className="mt-4">
+               <Link to="/dashboard">Go to Dashboard</Link>
+             </Button>
+           </CardContent>
+         </Card>
+       </div>
+     );
+  }
+
+  // Success State - Use confirmedBooking details
+  const { date, startTime, endTime, price } = confirmedBooking;
   const bookingReference = `BK-${bookingId?.slice(-6).toUpperCase()}`;
-  
+
   return (
     <div className="max-w-2xl mx-auto">
       <Card className="animate-fade-in">
@@ -48,60 +143,66 @@ const BookingConfirmation = () => {
             Your booking has been successfully confirmed. Thank you for your reservation.
           </CardDescription>
         </CardHeader>
-        
+
         <CardContent className="pt-6 space-y-6">
           <div className="bg-gray-50 rounded-lg p-4 border">
             <h3 className="font-semibold text-gray-700 mb-2">Booking Reference</h3>
             <p className="text-xl font-bold text-booking-primary">{bookingReference}</p>
           </div>
-          
+
           <div className="space-y-4">
             <h3 className="font-semibold text-gray-700">Appointment Details</h3>
-            
+
             <div className="flex items-center gap-3">
               <div className="bg-booking-accent rounded-full p-2">
                 <Calendar className="h-5 w-5 text-booking-primary" />
               </div>
               <div>
                 <div className="text-sm text-gray-500">Date</div>
-                <div className="font-medium">{format(parseISO(timeSlot.date), 'EEEE, MMMM d, yyyy')}</div>
+                {/* Use fetched data */}
+                <div className="font-medium">{format(parseISO(date), 'EEEE, MMMM d, yyyy')}</div>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3">
               <div className="bg-booking-accent rounded-full p-2">
                 <Clock className="h-5 w-5 text-booking-primary" />
               </div>
               <div>
                 <div className="text-sm text-gray-500">Time</div>
-                <div className="font-medium">{timeSlot.startTime} - {timeSlot.endTime}</div>
+                 {/* Use fetched data */}
+                <div className="font-medium">{startTime} - {endTime}</div>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3">
               <div className="bg-booking-accent rounded-full p-2">
                 <DollarSign className="h-5 w-5 text-booking-primary" />
               </div>
               <div>
                 <div className="text-sm text-gray-500">Amount Paid</div>
-                <div className="font-medium">${timeSlot.price.toFixed(2)}</div>
+                 {/* Use fetched data */}
+                <div className="font-medium">${price.toFixed(2)}</div>
               </div>
             </div>
           </div>
-          
+
           <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 text-sm text-blue-800">
-            <p className="font-medium">We've sent a confirmation email with these details.</p>
+            {/* Updated message */}
+            <p className="font-medium">A confirmation email may have been sent (if configured).</p>
             <p>Please keep this reference number for your records.</p>
           </div>
         </CardContent>
-        
+
         <CardFooter className="pt-2 flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="flex items-center gap-2 border-booking-primary text-booking-primary"
+            // onClick={() => {/* Implement receipt download logic */}}
+            disabled // Disable download for now
           >
             <Download className="h-4 w-4" />
-            <span>Download Receipt</span>
+            <span>Download Receipt (Coming Soon)</span>
           </Button>
           <Link to="/my-bookings">
             <Button className="bg-booking-primary hover:bg-opacity-90 w-full sm:w-auto">
