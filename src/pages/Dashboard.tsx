@@ -16,12 +16,13 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true); // Loading state
   const [error, setError] = useState<string | null>(null); // Error state
 
-  // Fetch bookings on mount and when user changes
+  // Fetch bookings on mount and when user or bookings change
   useEffect(() => {
     const fetchBookings = async () => {
       if (!currentUser) {
-        setIsLoading(false);
         setUserBookings([]);
+        setIsLoading(false);
+        navigate('/login');
         return;
       }
 
@@ -40,14 +41,7 @@ const Dashboard = () => {
     };
 
     fetchBookings();
-  }, [currentUser, getUserBookings]);
-
-  // Redirect if not logged in
-  useEffect(() => {
-    if (!currentUser && !isLoading) { // Check isLoading to prevent redirect during initial load
-      navigate('/login');
-    }
-  }, [currentUser, isLoading, navigate]);
+  }, [currentUser, getUserBookings, navigate]);  
 
   // Show loading state while fetching user or bookings
   if (isLoading || !currentUser) {

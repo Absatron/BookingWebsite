@@ -216,7 +216,8 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   // Renamed function to fetch user-specific bookings from the API
-  const getUserBookings = async (): Promise<Booking[]> => {
+  // Callback needed to ensure stable reference for useEffect in Dashboard or Profile component
+  const getUserBookings = useCallback(async (): Promise<Booking[]> => {
     if (!currentUser) {
       toast({
         title: "Authentication Required",
@@ -296,7 +297,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentUser, toast]);
 
 
   const value = {
