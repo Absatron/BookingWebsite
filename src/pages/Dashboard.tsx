@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useBooking } from '@/contexts/BookingContext';
 import { Calendar, Clock, User, Settings, ArrowRight, List, Loader2 } from 'lucide-react'; // Import Loader2
 import { format, parseISO } from 'date-fns'; // Import parseISO
-import { Booking } from '@/types'; // Import Booking type
+import { Booking, TimeSlot } from '@/types'; // Import Booking type
 
 const Dashboard = () => {
   const { currentUser } = useAuth();
@@ -71,11 +71,26 @@ const Dashboard = () => {
     );
   }
 
-  // Calculate stats using the state variable
-  const upcomingBookingsCount = userBookings.length;
+  // Helper function to check if a booking is in the future
+  const isFutureBooking = (booking: Booking) => {
+    const bookingDateTime = new Date(`${parseISO(booking.slot.date).toISOString().split('T')[0]}T${booking.slot.startTime}`);
+    return bookingDateTime > new Date();
+  };
 
-  // Get next booking using the state variable
-  const nextBooking = userBookings
+    // Helper function to check if a time slot is in the future
+  const isFutureSlot = (slot: TimeSlot) => {
+    const slotDateTime = new Date(`${parseISO(slot.date).toISOString().split('T')[0]}T${slot.startTime}`);
+    return slotDateTime > new Date();
+  };
+
+  // Filter for future bookings only
+  const futureBookings = userBookings.filter(isFutureBooking);
+
+  // Calculate stats using only future bookings
+  const upcomingBookingsCount = futureBookings.length;
+
+  // Get next booking using only future bookings
+  const nextBooking = futureBookings
     .filter(booking => booking.paymentStatus === 'completed')
     .sort((a, b) => {
       // Use parseISO since date is now a string 'yyyy-MM-dd'
@@ -85,7 +100,7 @@ const Dashboard = () => {
     })[0];
 
   // Count available slots (this logic remains the same)
-  const availableSlots = timeSlots.filter(slot => !slot.isBooked).length;
+  const availableSlots = timeSlots.filter(slot => !slot.isBooked && isFutureSlot(slot)).length;
 
   return (
     <div className="booking-container py-8">
@@ -115,8 +130,8 @@ const Dashboard = () => {
             <div className="flex items-center">
               <Calendar className="h-8 w-8 text-booking-primary mr-4" />
               <div>
-                <p className="text-3xl font-bold">{upcomingBookingsCount}</p> {/* Use count from state */}
-                <p className="text-sm text-gray-500">Total bookings</p>
+                <p className="text-3xl font-bold">{upcomingBookingsCount}</p> {/* Use count from future bookings */}
+                <p className="text-sm text-gray-500">Upcoming bookings</p>
               </div>
             </div>
           </CardContent>
@@ -248,7 +263,7 @@ const Dashboard = () => {
             </Link>
           </CardHeader>
           <CardContent>
-            {/* Use userBookings state variable */}
+            {/* Use userBookings for recent bookings */}
             {userBookings.length > 0 ? (
               <div className="space-y-4">
                 {/* Use parseISO for date */}
@@ -275,7 +290,7 @@ const Dashboard = () => {
                 ))}
               </div>
             ) : (
-              // ... No booking history content remains the same ...
+              // No booking history message
               <div className="text-center py-8">
                 <List className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                 <p className="text-gray-500">No booking history yet</p>
