@@ -30,11 +30,11 @@ const AdminPanel = () => {
     setPrice('');
   };
   
-  // Filter time slots to display only future ones
+  // Filter time slots to display only future ones (considering actual time for today)
   const futureSlots = [...timeSlots]
     .filter(slot => {
-      const slotDate = new Date(`${slot.date}T${slot.startTime}`);
-      return slotDate > new Date();
+      const slotDateTime = new Date(`${slot.date}T${slot.startTime}`);
+      return slotDateTime >= new Date();
     })
     .sort((a, b) => {
       const dateA = new Date(`${a.date}T${a.startTime}`);
@@ -65,7 +65,11 @@ const AdminPanel = () => {
               <DatePicker 
                 selected={selectedDate} 
                 onSelect={setSelectedDate} 
-                disabled={(date) => date < new Date()}
+                disabled={(date) => {
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  return date < today;
+                }}
                 className="w-full"
               />
             </div>

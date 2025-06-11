@@ -22,18 +22,50 @@ const BookingCalendar = () => {
     fetchTimeSlots();
   }, [fetchTimeSlots]);
 
-  // Get available dates that have slots
+  // Get available dates that have slots (considering time for today)
   const availableDates = [...new Set(timeSlots
-    .filter(slot => !slot.isBooked)
+    .filter(slot => {
+      if (slot.isBooked) return false;
+      
+      // For today's date, only include slots that haven't started yet
+      const today = new Date();
+      const slotDate = new Date(slot.date);
+      const isToday = slotDate.toDateString() === today.toDateString();
+      
+      if (isToday) {
+        const now = new Date();
+        const slotDateTime = new Date(`${slot.date}T${slot.startTime}`);
+        return slotDateTime > now;
+      }
+      
+      // For future dates, include all available slots
+      return true;
+    })
     .map(slot => slot.date)
   )];
 
   // Filter slots for the selected date that aren't booked
   const availableSlots = selectedDate
     ? timeSlots.filter(
-        slot => 
-          slot.date === format(selectedDate, 'yyyy-MM-dd') && 
-          !slot.isBooked
+        slot => {
+          if (slot.date !== format(selectedDate, 'yyyy-MM-dd') || slot.isBooked) {
+            return false;
+          }
+          
+          // For today's date, only show slots that haven't started yet
+          const today = new Date();
+          const slotDate = new Date(slot.date);
+          const isToday = slotDate.toDateString() === today.toDateString();
+          
+          if (isToday) {
+            const now = new Date();
+            const slotDateTime = new Date(`${slot.date}T${slot.startTime}`);
+            return slotDateTime > now;
+          }
+          
+          // For future dates, show all available slots
+          return true;
+        }
       )
     : [];
 
@@ -102,8 +134,10 @@ const BookingCalendar = () => {
             selected={selectedDate}
             onSelect={setSelectedDate}
             disabled={(date) => {
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
               return (
-                date < new Date() || // Past dates
+                date < today || // Past dates (excluding today)
                 !hasAvailableSlot(date) // Dates without available slots
               );
             }}
