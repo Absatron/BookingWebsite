@@ -79,6 +79,7 @@ router.get('/', wrapAsync(async (req, res) => {
     const userId = req.session.user_id;
 
     if (!userId) {
+         console.log("failed to fetch bookings - no userId in session");
         return res.status(401).json({ message: 'Authentication required. Please log in.' });
     }
 

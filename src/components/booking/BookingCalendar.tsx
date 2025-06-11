@@ -63,7 +63,14 @@ const BookingCalendar = () => {
     }
 
     // Call the updated createBooking which now initiates the booking on the backend
+    // calls route /api/bookings/initiate
     const bookingResult = await createBooking(selectedSlot.id);
+
+    if (!currentUser) {
+      // Session expired during booking attempt
+      navigate('/login', { state: { from: '/booking' } });
+      return;
+    }
     
     // Check if the initiation was successful and we received the bookingId
     if (bookingResult && bookingResult.bookingId) {

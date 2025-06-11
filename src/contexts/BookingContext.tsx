@@ -38,7 +38,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingSlots, setIsFetchingSlots] = useState(true);
   const { toast } = useToast();
-  const { currentUser } = useAuth();
+  const { currentUser , handleSessionExpired } = useAuth();
 
   const fetchTimeSlots = useCallback(async () => {
     setIsFetchingSlots(true);
@@ -166,15 +166,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     return timeSlots.find(slot => slot.id === id);
   };
 
-  const createBooking = async (slotId: string): Promise<{ bookingId: string; stripePriceId: string } | null> => {
-    if (!currentUser) {
-      toast({
-        title: "Authentication Required",
-        description: "You must be logged in to book a slot.",
-        variant: "destructive",
-      });
-      return null;
-    }
+  const createBooking = useCallback(async (slotId: string): Promise<{ bookingId: string; stripePriceId: string } | null> => {
 
     setIsLoading(true);
     try {
@@ -188,6 +180,11 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       });
 
       const data = await response.json();
+
+      if (response.status === 401) {
+        handleSessionExpired(); // This immediately clears currentUser
+        throw new Error('Your session has expired. Please log in again.');
+      }
 
       if (!response.ok) {
         throw new Error(data.message || 'Failed to initiate booking');
@@ -213,7 +210,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       setIsLoading(false);
       setSelectedSlot(null); // Clear selection after attempting booking
     }
-  };
+  }, [toast, fetchTimeSlots, handleSessionExpired]);
 
   // Renamed function to fetch user-specific bookings from the API
   // Callback needed to ensure stable reference for useEffect in Dashboard or Profile component

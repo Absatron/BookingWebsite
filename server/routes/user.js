@@ -103,6 +103,29 @@ router.post('/login', wrapAsync(async (req, res) => {
     });
 }));
 
+router.get('/validate-session', wrapAsync(async (req, res) => {
+    const userId = req.session.user_id;
+    
+    if (!userId) {
+        // session expired or not created
+        return res.status(401).json({ message: 'No active session' });
+    }
+    
+    const user = await User.findById(userId);
+    if (!user) {
+        return res.status(401).json({ message: 'User not found' });
+    }
+    
+    const isAdmin = checkIfEmailIsAdmin(user.email);
+    
+    return res.json({
+        userId: user._id,
+        email: user.email,
+        name: user.name,
+        isAdmin,
+    });
+}));
+
 
 router.post('/logout', (req, res) => {
     req.session.destroy((err) => {

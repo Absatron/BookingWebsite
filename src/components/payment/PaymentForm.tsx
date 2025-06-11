@@ -108,7 +108,7 @@ const PaymentForm = () => {
   }, [bookingId, navigate, toast, cancelled]); // Add cancelled to dependency array
 
 
-  // Handle form submission start
+  // PAYEMENT PROCESSING - REDIRECT TO STRIPE
   const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
      // Basic validation before allowing submission
      if (!bookingDetails || !bookingDetails.stripePriceId) {

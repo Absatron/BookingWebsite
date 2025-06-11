@@ -38,7 +38,7 @@ router.post('/create-checkout-session', urlencodedParser, wrapAsync(async (req, 
          return res.status(409).json({ message: 'Booking is not in a payable state.' });
     }
 
-
+    console.log(`Creating checkout session for booking ${bookingId} with price ID ${stripePriceId}`);
     const session = await stripe.checkout.sessions.create({
         line_items: [
             {

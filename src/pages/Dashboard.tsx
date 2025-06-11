@@ -40,6 +40,7 @@ const Dashboard = () => {
       }
     };
 
+    console.log("Fetching bookings for user:", currentUser?.email);
     fetchBookings();
   }, [currentUser, getUserBookings, navigate]);  
 

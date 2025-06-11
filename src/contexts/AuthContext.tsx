@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
+import React, { createContext, useState, useEffect, useContext, ReactNode, useCallback } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { User } from '@/types';
 
@@ -8,15 +8,10 @@ type AuthContextType = {
   login: (email: string, password: string) => Promise<boolean>;
   register: (email: string, password: string, name: string) => Promise<boolean>;
   logout: () => void;
+  handleSessionExpired: () => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Mock users for demonstration purposes
-const mockUsers: User[] = [
-  { id: '1', email: 'admin@example.com', name: 'Admin User', isAdmin: true },
-  { id: '2', email: 'user@example.com', name: 'Regular User', isAdmin: false },
-];
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -24,13 +19,50 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check if user is stored in localStorage
-    const storedUser = localStorage.getItem('currentUser');
-    if (storedUser) {
-      setCurrentUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+      // maintain consistency with backend session
+      const validateSession = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/api/user/validate-session', {
+          method: 'GET',
+          credentials: 'include',
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const user: User = {
+            id: data.userId,
+            email: data.email,
+            isAdmin: data.isAdmin,
+            name: data.name,
+          };
+          setCurrentUser(user);
+          localStorage.setItem('currentUser', JSON.stringify(user));
+        } else {
+          // Session is invalid, clear localStorage
+          setCurrentUser(null);
+          localStorage.removeItem('currentUser');
+        }
+      } catch (error) {
+        console.error('Session validation error:', error);
+        setCurrentUser(null);
+        localStorage.removeItem('currentUser');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    validateSession();
   }, []);
+
+  const handleSessionExpired = useCallback(() => {
+    setCurrentUser(null);
+    localStorage.removeItem('currentUser');
+    toast({
+      title: "Session Expired",
+      description: "Your session has expired. Please log in again.",
+      variant: "destructive",
+    });
+  }, [toast]);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
@@ -170,6 +202,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     login,
     register,
     logout,
+    handleSessionExpired,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
