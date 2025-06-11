@@ -127,15 +127,39 @@ const PaymentForm = () => {
   // Handle cancellation button click
   const handleCancel = async () => {
       if (!bookingId) return;
-      // Optional: Implement backend call to explicitly cancel the 'pending' booking
-      // try {
-      //   await fetch(`/api/bookings/${bookingId}/cancel`, { method: 'POST', credentials: 'include' });
-      //   toast({ title: "Booking Cancelled", description: "Your pending booking has been cancelled." });
-      // } catch (error) {
-      //   console.error("Failed to cancel booking:", error);
-      //   toast({ title: "Error", description: "Could not cancel booking.", variant: "destructive" });
-      // }
-      navigate('/booking'); // Navigate back regardless of backend call success/failure for now
+      
+      try {
+        const response = await fetch(`http://localhost:3000/api/bookings/${bookingId}/cancel`, { 
+          method: 'POST', 
+          credentials: 'include' 
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+          // Handle specific error responses from backend
+          throw new Error(data.message || `Server error: ${response.status}`);
+        }
+        
+        // Success - show success toast with backend message
+        toast({ 
+          title: "Booking Cancelled", 
+          description: data.message || "Your pending booking has been cancelled.",
+          variant: "default"
+        });
+        
+        navigate('/booking'); // Navigate back on success
+        
+      } catch (error) {
+        console.error("Failed to cancel booking:", error);
+        const errorMsg = error instanceof Error ? error.message : "Could not cancel booking.";
+        toast({ 
+          title: "Error", 
+          description: errorMsg, 
+          variant: "destructive" 
+        });
+        // Don't navigate on error - let user try again or handle manually
+      }
   };
 
 

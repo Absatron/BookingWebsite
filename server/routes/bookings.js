@@ -46,6 +46,54 @@ router.post('/initiate', wrapAsync(async (req, res) => {
     });
 }));
 
+
+// Cancel booking (change status from pending to available)
+router.post('/:bookingId/cancel', wrapAsync(async (req, res) => {
+    const { bookingId } = req.params;
+    const userId = req.session.user_id;
+
+    console.log("Received request to cancel booking:", bookingId, "for user:", userId);
+
+    if (!userId) {
+        return res.status(401).json({ message: 'Authentication required. Please log in.' });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(bookingId)) {
+        return res.status(400).json({ message: 'Invalid booking ID format.' });
+    }
+
+    const booking = await Booking.findById(bookingId);
+
+    if (!booking) {
+        return res.status(404).json({ message: 'Booking not found.' });
+    }
+
+    console.log("user authenticated and booking found, proceeding to cancel booking:", booking);
+    // Check if the user owns this booking
+    if (booking.bookedBy && booking.bookedBy.toString() !== userId) {
+        return res.status(403).json({ message: 'Forbidden: You can only cancel your own bookings.' });
+    }
+
+    // Only allow cancellation of pending bookings
+    if (booking.status !== 'pending') {
+        return res.status(400).json({ 
+            message: `Cannot cancel booking with status: ${booking.status}. Only pending bookings can be cancelled.` 
+        });
+    }
+
+    // Reset booking to available state
+    booking.status = 'available';
+    booking.bookedBy = null;
+    await booking.save();
+
+    console.log("Booking cancelled:", booking);
+
+    res.status(200).json({
+        message: 'Booking cancelled successfully.',
+        bookingId: booking._id
+    });
+}));
+
 // Get specific booking details by ID
 router.get('/:bookingId', wrapAsync(async (req, res) => {
     const { bookingId } = req.params;
@@ -93,7 +141,8 @@ router.get('/', wrapAsync(async (req, res) => {
     }
 
     // Return the bookings if found
-    res.status(200).json(bookings);
+    return res.status(200).json(bookings);
 }));
+
 
 export default router;

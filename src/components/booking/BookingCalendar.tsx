@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
@@ -12,10 +12,15 @@ import { useToast } from '@/components/ui/use-toast';
 
 const BookingCalendar = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const { timeSlots, selectSlot, selectedSlot, createBooking, isLoading } = useBooking();
+  const { timeSlots, selectSlot, selectedSlot, createBooking, isLoading, fetchTimeSlots } = useBooking();
   const { currentUser } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Fetch fresh time slots when component mounts
+  useEffect(() => {
+    fetchTimeSlots();
+  }, [fetchTimeSlots]);
 
   // Get available dates that have slots
   const availableDates = [...new Set(timeSlots
