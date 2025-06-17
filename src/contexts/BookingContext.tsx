@@ -236,6 +236,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
 
       if (!response.ok) {
         if (response.status === 401) {
+          handleSessionExpired()
           throw new Error('Authentication required. Please log in again.');
         }
         const errorData = await response.json();

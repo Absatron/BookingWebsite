@@ -57,7 +57,7 @@ async function createSlot({ date, startTime, endTime, price }) {
           const errorMessage = `Configuration error: Stripe Price ID not found in .env for price: ${price}. Key checked: ${priceIdEnvKey}`;
           console.error(`Error: ${errorMessage}`);
           // Throw an error instead of trying to use 'res'
-          throw new Error(errorMessage);
+          throw new Error("Price not configured in .env file.")
      }
      console.log(`Found Stripe Price ID: ${stripePriceId} for price ${price}`);
 

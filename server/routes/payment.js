@@ -56,6 +56,11 @@ router.post('/create-checkout-session', urlencodedParser, wrapAsync(async (req, 
         metadata: {
             bookingId: bookingId,
         },
+         payment_intent_data: {
+            metadata: {
+                bookingId: bookingId,
+            },
+        },
         // Optional: Pre-fill customer email if available
         // customer_email: req.session.user_email, // Assuming email is stored in session
     });
@@ -65,14 +70,25 @@ router.post('/create-checkout-session', urlencodedParser, wrapAsync(async (req, 
 
 // Stripe Webhook Handler
 // Use express.raw({type: 'application/json'}) to get the raw body for signature verification
-router.post('/webhook', express.json({type: 'application/json'}), wrapAsync(async (request, response) => {
+router.post('/webhook', express.raw({type: 'application/json'}), wrapAsync(async (request, response) => {
 
   if (!endpointSecret) {
     console.error("Webhook Error: STRIPE_WEBHOOK_SECRET is not configured.");
     return response.status(500).send('Webhook configuration error.');
   }
 
-  const event = request.body;
+    const sig = request.headers['stripe-signature'];
+
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
+  } catch (err) {
+    response.status(400).send(`Webhook Error: ${err.message}`);
+    return;
+  }
+
+  //const event = request.body;
 
 
   // Handle the event
@@ -81,13 +97,10 @@ router.post('/webhook', express.json({type: 'application/json'}), wrapAsync(asyn
       const session = event.data.object;
       console.log('Checkout Session Completed:', session.id);
       console.log('Metadata:', session.metadata);
-
-      // Extract bookingId from metadata
-      const bookingId = session.metadata.bookingId;
+      let bookingId = session.metadata?.bookingId;
 
       if (!bookingId) {
-          console.error('Webhook Error: Missing bookingId in session metadata for session', session.id);
-          // Respond early but don't throw, Stripe might retry
+          console.error('Webhook Error: Missing bookingId in payment intent metadata for payment intent', paymentIntent.id);
           return response.status(400).send('Webhook Error: Missing bookingId in metadata.');
       }
 
@@ -95,31 +108,53 @@ router.post('/webhook', express.json({type: 'application/json'}), wrapAsync(asyn
       try {
           const booking = await Booking.findById(bookingId);
           if (booking && booking.status === 'pending') {
-              // Update status to 'completed'
               booking.status = 'confirmed';
-              // Optionally store Stripe payment intent ID
-              // booking.paymentIntentId = session.payment_intent;
               await booking.save();
-              console.log(`Booking ${bookingId} status updated to completed.`);
+              console.log(`Booking ${bookingId} status updated to confirmed.`);
           } else if (booking) {
               console.warn(`Webhook Warning: Booking ${bookingId} already processed or not in pending state. Status: ${booking.status}`);
           } else {
-              console.error(`Webhook Error: Booking ${bookingId} not found for session ${session.id}`);
+              console.error(`Webhook Error: Booking ${bookingId} not found for payment intent ${paymentIntent.id}`);
           }
       } catch (dbError) {
           console.error(`Webhook DB Error: Failed to update booking ${bookingId}: ${dbError.message}`);
-          // Respond with an error status code to indicate failure
           return response.status(500).send('Webhook DB Error: Could not update booking.');
       }
-
       break;
-    // ... handle other event types if needed (e.g., payment_failed)
+      
+    case 'payment_intent.payment_failed':
+        const failedPaymentIntent = event.data.object;
+        const failedBookingId = failedPaymentIntent.metadata?.bookingId;
+        
+        if (!failedBookingId) {
+            console.error('Webhook Error: Missing bookingId in failed payment intent metadata for payment intent', failedPaymentIntent.id);
+            return response.status(400).send('Webhook Error: Missing bookingId in metadata.');
+        }
+        
+        try {
+            const booking = await Booking.findById(failedBookingId);
+            if (booking) {
+                booking.status = 'available'; // Reset booking status
+                booking.bookedBy = null; // Clear bookedBy field
+                await booking.save();
+                console.log(`Booking ${booking._id} status reset to available due to payment failure.`);
+            } else if (booking) {
+                console.warn(`Webhook Warning: Booking ${failedBookingId} not in pending state. Status: ${booking.status}`);
+            } else {
+                console.error(`Webhook Error: Booking ${failedBookingId} not found for payment intent ${failedPaymentIntent.id}`);
+            }
+        } catch (dbError) {
+            console.error(`Webhook DB Error: Failed to update failed booking ${failedBookingId}: ${dbError.message}`);
+            return response.status(500).send('Webhook DB Error: Could not update booking.');
+        }
+        break;
     default:
       console.log(`Unhandled event type ${event.type}`);
   }
 
   // Return a 200 response to acknowledge receipt of the event
-  response.status(200).json({ received: true });
+  //response.status(200).json({ received: true });
+  response.send();
 }));
 
 
