@@ -37,6 +37,7 @@ router.post('/create-checkout-session', urlencodedParser, wrapAsync(async (req, 
         ],
         mode: 'payment',
         payment_method_types: ['card', 'revolut_pay'],
+        expires_at: Math.floor(Date.now() / 1000) + (30 * 60), // 30 minutes from now
         // Ensure your frontend routing handles /confirmation/:bookingId
         success_url: `http://localhost:8080/confirmation/${bookingId}?session_id={CHECKOUT_SESSION_ID}`,
         // Redirect back to payment page on cancel, passing bookingId

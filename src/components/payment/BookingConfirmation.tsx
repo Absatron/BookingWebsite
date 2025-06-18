@@ -14,7 +14,7 @@ interface ConfirmedBooking extends Omit<BookingType, '_id' | 'date' | 'isBooked'
   startTime: string;
   endTime: string;
   price: number;
-  status: 'available' | 'pending' | 'completed' | 'cancelled'; // Add status field
+  status: 'available' | 'pending' | 'confirmed'; // Add status field
   // Add other fields returned by your backend /api/bookings/:bookingId endpoint
 }
 
@@ -28,6 +28,7 @@ const BookingConfirmation = () => {
   const [confirmedBooking, setConfirmedBooking] = useState<ConfirmedBooking | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   // Extract session_id from query params (optional, for potential verification)
   const queryParams = new URLSearchParams(location.search);
@@ -42,27 +43,29 @@ const BookingConfirmation = () => {
       return;
     }
 
+    // Function to get response from backend and check booking status
+    const getBookingDetails = async (id: string) => {
+      const response = await fetch(`http://localhost:3000/api/bookings/${id}`, {
+        credentials: 'include', // Include if auth is needed to view booking
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to fetch booking details.');
+      }
+      return response.json();
+    };
+
     const fetchBookingStatus = async () => {
       setIsLoading(true);
       setError(null);
       try {
         // Fetch booking details directly from the backend
-        const response = await fetch(`http://localhost:3000/api/bookings/${bookingId}`, {
-          credentials: 'include', // Include if auth is needed to view booking
-        });
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || 'Failed to fetch booking details.');
-        }
-
+        const data = await getBookingDetails(bookingId);
         const fetchedBooking = data as ConfirmedBooking;
 
-        // Check if the status is 'completed' (or 'confirmed' depending on your backend logic)
-        // This status should have been updated by the webhook
-        if (fetchedBooking.status !== 'completed') {
+        if (fetchedBooking.status !== 'confirmed') {
            // Optional: Add a small delay and retry fetch in case webhook is slightly delayed
-           // await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s
+           //await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s
            // const retryResponse = await fetch(...); // Retry fetch
            // ... handle retry response ...
            // If still not completed after retry:
@@ -97,6 +100,53 @@ const BookingConfirmation = () => {
     fetchBookingStatus();
 
   }, [bookingId, navigate, toast, sessionId]); // Added sessionId to dependencies (optional)
+
+  // Handle receipt download
+  const handleDownloadReceipt = async () => {
+    if (!bookingId) return;
+    
+    setIsDownloading(true);
+    try {
+      const response = await fetch(`http://localhost:3000/api/bookings/${bookingId}/receipt`, {
+        credentials: 'include' // Include cookies for authentication
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to download receipt');
+      }
+      
+      // Get the PDF blob
+      const blob = await response.blob();
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `receipt-BK-${bookingId?.slice(-6).toUpperCase()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      
+      // Cleanup
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Success",
+        description: "Receipt downloaded successfully!",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error('Download failed:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to download receipt.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   // Loading State
   if (isLoading) {
@@ -198,11 +248,20 @@ const BookingConfirmation = () => {
           <Button
             variant="outline"
             className="flex items-center gap-2 border-booking-primary text-booking-primary"
-            // onClick={() => {/* Implement receipt download logic */}}
-            disabled // Disable download for now
+            onClick={handleDownloadReceipt} // Attach handler
+            disabled={isDownloading} // Disable while downloading
           >
-            <Download className="h-4 w-4" />
-            <span>Download Receipt (Coming Soon)</span>
+            {isDownloading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Downloading...</span>
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4" />
+                <span>Download Receipt</span>
+              </>
+            )}
           </Button>
           <Link to="/my-bookings">
             <Button className="bg-booking-primary hover:bg-opacity-90 w-full sm:w-auto">

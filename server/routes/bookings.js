@@ -2,6 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose'; // <-- Add this import
 import { Booking } from '../models.js';
 import { wrapAsync } from '../utils/error-utils.js';
+import { generateReceiptPDF } from '../utils/pdf-utils.js';
 
 const router = express.Router();
 
@@ -142,6 +143,46 @@ router.get('/', wrapAsync(async (req, res) => {
 
     // Return the bookings if found
     return res.status(200).json(bookings);
+}));
+
+// Download receipt (PDF) for a booking
+router.get('/:bookingId/receipt', wrapAsync(async (req, res) => {
+    const { bookingId } = req.params;
+    const userId = req.session.user_id;
+
+    console.log("Received request to download receipt for booking:", bookingId, "by user:", userId);
+
+    if (!userId) {
+        return res.status(401).json({ message: 'Authentication required. Please log in.' });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(bookingId)) {
+        return res.status(400).json({ message: 'Invalid booking ID format.' });
+    }
+
+    const booking = await Booking.findById(bookingId);
+
+    if (!booking) {
+        return res.status(404).json({ message: 'Booking not found.' });
+    }
+
+    // Check if the user owns this booking
+    if (booking.bookedBy && booking.bookedBy.toString() !== userId) {
+        return res.status(403).json({ message: 'Forbidden: You can only download receipts for your own bookings.' });
+    }
+
+    // Generate PDF receipt
+    const receiptPDF = await generateReceiptPDF(booking);
+
+    // Set the content type and disposition for PDF download
+    res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="receipt-${bookingId}.pdf"`,
+        'Content-Length': receiptPDF.length
+    });
+
+    // Send the PDF buffer as the response
+    res.send(receiptPDF);
 }));
 
 

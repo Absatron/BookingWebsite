@@ -121,7 +121,6 @@ const PaymentForm = () => {
        return;
      }
     setProcessing(true); // Set processing state to true
-    // Form action handles the rest (redirect to Stripe)
   };
 
   // Handle cancellation button click
