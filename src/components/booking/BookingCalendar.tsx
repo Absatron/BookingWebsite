@@ -122,7 +122,10 @@ const BookingCalendar = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div className="booking-container py-8">
+      <h1 className="text-2xl font-bold text-booking-primary mb-8">Book an Appointment</h1>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <Card className="lg:col-span-1">
         <CardHeader>
           <CardTitle>Select a Date</CardTitle>
@@ -205,6 +208,7 @@ const BookingCalendar = () => {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 };

@@ -165,9 +165,11 @@ const PaymentForm = () => {
   // Updated loading condition
   if (isLoadingDetails) {
     return (
-        <div className="flex justify-center items-center min-h-[300px]">
-            <Loader2 className="h-8 w-8 animate-spin text-booking-primary" />
-            <span className="ml-2">Loading Booking Details...</span>
+        <div className="booking-container py-8">
+          <div className="flex justify-center items-center min-h-[300px]">
+              <Loader2 className="h-8 w-8 animate-spin text-booking-primary" />
+              <span className="ml-2">Loading Booking Details...</span>
+          </div>
         </div>
     );
   }
@@ -175,7 +177,11 @@ const PaymentForm = () => {
   // Updated condition for missing details after loading
   if (!bookingDetails) {
     // Error toast and navigation are handled in useEffect, this is a fallback
-    return <div className="text-center py-12 text-red-500">Could not load booking details. Please try again or select a different slot.</div>;
+    return (
+      <div className="booking-container py-8">
+        <div className="text-center py-12 text-red-500">Could not load booking details. Please try again or select a different slot.</div>
+      </div>
+    );
   }
 
   // Destructure AFTER checking !bookingDetails
@@ -183,7 +189,10 @@ const PaymentForm = () => {
 
 
   return (
-    <div className="grid gap-8 grid-cols-1 lg:grid-cols-3">
+    <div className="booking-container py-8">
+      <h1 className="text-2xl font-bold text-booking-primary mb-8">Payment</h1>
+      
+      <div className="grid gap-8 grid-cols-1 lg:grid-cols-3">
       <form
         action="http://localhost:3000/api/payment/create-checkout-session"
         method="POST"
@@ -273,6 +282,7 @@ const PaymentForm = () => {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 };

@@ -52,8 +52,11 @@ const AdminPanel = () => {
   }, {});
   
   return (
-    <div className="space-y-8">
-      <Card>
+    <div className="booking-container py-8">
+      <h1 className="text-2xl font-bold text-booking-primary mb-8">Admin Panel</h1>
+      
+      <div className="space-y-8">
+        <Card>
         <CardHeader>
           <CardTitle>Add New Time Slot</CardTitle>
           <CardDescription>Create available time slots for bookings</CardDescription>
@@ -189,6 +192,7 @@ const AdminPanel = () => {
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 };
