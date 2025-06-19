@@ -80,6 +80,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const data = await response.json();
 
       if (!response.ok) {
+        // Check if it's an email not verified error
+        if (data.emailNotVerified) {
+          toast({
+            title: "Email not verified",
+            description: data.message,
+            variant: "destructive",
+          });
+          // Store email for resend verification
+          localStorage.setItem('unverifiedEmail', data.email);
+          // Redirect to resend verification page
+          window.location.href = '/resend-verification';
+          return false;
+        }
+        
         toast({
           title: "Login failed",
           description: data.message || "Invalid email or password",
@@ -139,15 +153,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return false;
       }
 
-      const user: User = {
-        id: data.userId,
-        email: data.email,
-        isAdmin: data.isAdmin,
-        name: data.name,
-      };
+      // Registration successful - show message about email verification
+      toast({
+        title: "Registration successful!",
+        description: data.message || "Please check your email to verify your account.",
+      });
       
-      setCurrentUser(user);
-      localStorage.setItem('currentUser', JSON.stringify(user));
+      // Don't set user as logged in since they need to verify email first
+      return true;
       
       toast({
         title: "Registration successful",

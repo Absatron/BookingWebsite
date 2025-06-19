@@ -35,7 +35,8 @@ const RegisterForm = () => {
     
     const success = await register(email, password, name);
     if (success) {
-      navigate('/dashboard');
+      // Redirect to login instead of dashboard since user needs to verify email
+      navigate('/login');
     }
   };
 

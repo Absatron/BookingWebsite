@@ -63,6 +63,7 @@
     "morgan": "^1.10.0",
     "next-themes": "^0.3.0",
     "node-cron": "^3.0.3",
+    "nodemailer": "^7.0.3",
     "pdfkit": "^0.17.1",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",

@@ -18,6 +18,8 @@ import NotFound from "./pages/NotFound";
 // Auth Components
 import LoginForm from "./components/auth/LoginForm";
 import RegisterForm from "./components/auth/RegisterForm";
+import EmailVerification from "./components/auth/EmailVerification";
+import ResendVerification from "./components/auth/ResendVerification";
 
 // Booking Components
 import BookingCalendar from "./components/booking/BookingCalendar";
@@ -29,6 +31,8 @@ import AdminPanel from "./components/admin/AdminPanel";
 // Payment Components
 import PaymentForm from "./components/payment/PaymentForm";
 import BookingConfirmation from "./components/payment/BookingConfirmation";
+import BookingDetails from "./components/admin/BookingDetails";
+import { Book } from "lucide-react";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +64,8 @@ const App = () => (
               <Route path="/" element={<Layout><Home /></Layout>} />
               <Route path="/login" element={<LoginForm />} />
               <Route path="/register" element={<RegisterForm />} />
+              <Route path="/verify-email" element={<EmailVerification />} />
+              <Route path="/resend-verification" element={<ResendVerification />} />
               
               {/* Booking Routes */}
               <Route path="/booking" element={<Layout><BookingCalendar /></Layout>} />
@@ -78,6 +84,10 @@ const App = () => (
               <Route 
                 path="/admin" 
                 element={<PrivateRoute element={<Layout><AdminPanel /></Layout>} adminOnly={true} />} 
+              />
+              <Route 
+                path="/admin/booking/:bookingId" 
+                element={<PrivateRoute element={<Layout><BookingDetails /></Layout>} adminOnly={true} />} 
               />
               
               {/* Catch-all Route */}

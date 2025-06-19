@@ -9,6 +9,7 @@ import { useBooking } from '@/contexts/BookingContext';
 import { TimeSlot } from '@/types';
 import { format } from 'date-fns';
 import { Calendar, Clock, DollarSign, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom'; 
 
 const AdminPanel = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -16,6 +17,7 @@ const AdminPanel = () => {
   const [endTime, setEndTime] = useState('');
   const [price, setPrice] = useState('');
   const { timeSlots, addTimeSlot, deleteTimeSlot, isLoading } = useBooking();
+  const navigate = useNavigate();
   
   const handleAddSlot = async () => {
     if (!selectedDate || !startTime || !endTime || !price) {
@@ -152,7 +154,8 @@ const AdminPanel = () => {
                     {slots.map((slot) => (
                       <div 
                         key={slot.id} 
-                        className={`booking-card relative ${slot.isBooked ? 'opacity-75' : ''}`}
+                        className={`booking-card relative ${slot.isBooked ? 'opacity-75 cursor-pointer hover:opacity-90 transition-opacity' : ''}`}
+                        onClick={slot.isBooked ? () => navigate(`/admin/booking/${slot.id}`) : undefined}
                       >
                         <div className="flex justify-between items-center mb-2">
                           <span className="text-sm text-gray-500">
@@ -165,7 +168,7 @@ const AdminPanel = () => {
                         
                         {slot.isBooked ? (
                           <div className="bg-booking-warning text-white text-xs py-1 px-2 rounded-md inline-block">
-                            Booked
+                            Booked 
                           </div>
                         ) : (
                           <div className="bg-green-100 text-green-800 text-xs py-1 px-2 rounded-md inline-block">
@@ -178,7 +181,10 @@ const AdminPanel = () => {
                             variant="ghost" 
                             size="icon" 
                             className="absolute top-2 right-2 text-gray-400 hover:text-red-500 hover:bg-transparent"
-                            onClick={() => deleteTimeSlot(slot.id)}
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent card click when delete button is clicked
+                              deleteTimeSlot(slot.id);
+                            }}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 import cron from 'node-cron';
-import { isBefore } from 'date-fns';
+import { isBefore, format } from 'date-fns';
 import Joi from 'joi';
 const { required } = Joi;
 
@@ -21,6 +21,13 @@ const userSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
+    isVerified: {
+        type: Boolean,
+        default: false
+    },
+    verificationToken: {
+        type: String
+    }
 });
 
 const SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS) || 12;
@@ -75,7 +82,8 @@ const bookingSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId, ref: User
     },
     createdAt: {
-        type: Date
+        type: Date,
+        default: Date.now
     }
 })
 

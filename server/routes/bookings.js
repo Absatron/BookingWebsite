@@ -104,20 +104,13 @@ router.get('/:bookingId', wrapAsync(async (req, res) => {
         return res.status(400).json({ message: 'Invalid booking ID format.' });
     }
 
-    const booking = await Booking.findById(bookingId);
+    const booking = await Booking.findById(bookingId).populate('bookedBy', 'name email');
 
     if (!booking) {
         return res.status(404).json({ message: 'Booking not found.' });
     }
 
-    // Optional: Add authorization check if only the user who booked it should see it
-    // if (booking.bookedBy && booking.bookedBy.toString() !== userId) {
-    //     return res.status(403).json({ message: 'Forbidden: You do not have access to this booking.' });
-    // }
-
-    // Convert date to yyyy-MM-dd format before sending if needed, or handle on frontend
-    // const formattedBooking = { ...booking.toObject(), date: format(booking.date, 'yyyy-MM-dd') };
-
+    console.log("Booking details fetched:", booking);
     res.status(200).json(booking); // Send the full booking object
 }));
 

@@ -61,6 +61,7 @@ const confirmBooking = async (bookingId) => {
         
         if (booking && booking.status === 'pending') {
             booking.status = 'confirmed';
+            booking.createdAt = new Date();
             await booking.save();
             console.log(`Booking ${bookingId} status updated to confirmed.`);
             return { success: true, message: 'Booking confirmed' };
