@@ -9,7 +9,7 @@ import { format, parseISO } from 'date-fns'; // Import parseISO
 import { Booking, TimeSlot } from '@/types'; // Import Booking type
 
 const Dashboard = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, loading } = useAuth();
   const { timeSlots, getUserBookings } = useBooking();
   const navigate = useNavigate();
   const [userBookings, setUserBookings] = useState<Booking[]>([]); // State for bookings
@@ -19,6 +19,9 @@ const Dashboard = () => {
   // Fetch bookings on mount and when user or bookings change
   useEffect(() => {
     const fetchBookings = async () => {
+
+      if (loading) return;
+
       if (!currentUser) {
         setUserBookings([]);
         setIsLoading(false);
@@ -42,10 +45,10 @@ const Dashboard = () => {
 
     console.log("Fetching bookings for user:", currentUser?.email);
     fetchBookings();
-  }, [currentUser, getUserBookings, navigate]);  
+  }, [currentUser, loading, getUserBookings, navigate]);  
 
   // Show loading state while fetching user or bookings
-  if (isLoading || !currentUser) {
+  if (loading || (isLoading && currentUser) ){
     return (
       <div className="flex justify-center items-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-booking-primary" />
