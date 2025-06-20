@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Mail, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { config } from '@/lib/config';
 
 interface ResendVerificationProps {
     initialEmail?: string;
@@ -36,7 +37,7 @@ const ResendVerification: React.FC<ResendVerificationProps> = ({ initialEmail = 
         setMessage('');
 
         try {
-            const response = await fetch('http://localhost:3000/api/user/resend-verification', {
+            const response = await fetch(`${config.apiUrl}/api/user/resend-verification`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Calendar, Clock, DollarSign, User, Mail, Phone } from 'lucide-react';
 import { format } from 'date-fns';
+import { config } from '@/lib/config';
 
 interface BookingDetailsData {
   _id: string;
@@ -32,7 +33,7 @@ const BookingDetails = () => {
     const fetchBookingDetails = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch(`http://localhost:3000/api/bookings/${bookingId}`, {
+        const response = await fetch(`${config.apiUrl}/api/bookings/${bookingId}`, {
         credentials: 'include', // Include if auth is needed to view booking
       });
         
@@ -189,7 +190,14 @@ const BookingDetails = () => {
                 <div>
                   <span className="font-medium">Created At:</span>
                   <span className="ml-2 text-gray-600">
-                    {format(new Date(booking.createdAt), 'MMM d, yyyy at h:mm a')}
+                    {format(
+                        new Date(
+                          typeof booking.createdAt === 'string' && booking.createdAt.length <= 10 
+                            ? parseInt(booking.createdAt) * 1000 
+                            : booking.createdAt
+                        ), 
+                        'MMM d, yyyy at h:mm a'
+          )}
                   </span>
                 </div>
               </div>

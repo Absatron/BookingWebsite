@@ -8,6 +8,7 @@ import { format, parseISO } from 'date-fns';
 import { Calendar, Clock, DollarSign, Loader2 } from 'lucide-react'; // Added Loader2
 import { Booking as BookingType } from '@/types'; // Assuming Booking type is defined in types/index.ts
 import mongoose from 'mongoose'; // Import mongoose to use its types if needed, or define ObjectId type
+import { config } from '@/lib/config';
 
 // Define a more specific type if BookingType uses string for _id
 interface FetchedBooking extends Omit<BookingType, '_id' | 'bookedBy' | 'date' | 'isBooked' | 'paymentStatus'> {
@@ -67,7 +68,7 @@ const PaymentForm = () => {
       setProcessing(false); // Reset processing state on fetch
       try {
         // Make sure credentials are included if your backend route needs the session
-        const response = await fetch(`http://localhost:3000/api/bookings/${bookingId}`, {
+        const response = await fetch(`${config.apiUrl}/api/bookings/${bookingId}`, {
            credentials: 'include',
         });
         const data = await response.json();
@@ -112,7 +113,7 @@ const PaymentForm = () => {
       if (bookingId && bookingDetails?.status === 'pending') {
         // Use navigator.sendBeacon for reliable cleanup on page unload
         navigator.sendBeacon(
-          `http://localhost:3000/api/bookings/${bookingId}/cancel`,
+          `${config.apiUrl}/api/bookings/${bookingId}/cancel`,
           JSON.stringify({})
         );
       }
@@ -128,7 +129,7 @@ const PaymentForm = () => {
     // If component unmounts and we have a booking ID, try to cancel
     if (bookingId) {
       // Use fetch with keepalive for better reliability during unmount
-      fetch(`http://localhost:3000/api/bookings/${bookingId}/cancel`, {
+      fetch(`${config.apiUrl}/api/bookings/${bookingId}/cancel`, {
         method: 'POST',
         credentials: 'include',
         keepalive: true // Important: keeps request alive even if page is closing
@@ -162,7 +163,7 @@ const PaymentForm = () => {
       if (!bookingId) return;
       
       try {
-        const response = await fetch(`http://localhost:3000/api/bookings/${bookingId}/cancel`, { 
+        const response = await fetch(`${config.apiUrl}/api/bookings/${bookingId}/cancel`, { 
           method: 'POST', 
           credentials: 'include' 
         });
@@ -228,7 +229,7 @@ const PaymentForm = () => {
       
       <div className="grid gap-8 grid-cols-1 lg:grid-cols-3">
       <form
-        action="http://localhost:3000/api/payment/create-checkout-session"
+        action={`${config.apiUrl}/api/payment/create-checkout-session`}
         method="POST"
         onSubmit={handleFormSubmit} // Use the handler to set processing state
         className="lg:col-span-2"

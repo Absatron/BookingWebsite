@@ -31,7 +31,7 @@ import AdminPanel from "./components/admin/AdminPanel";
 // Payment Components
 import PaymentForm from "./components/payment/PaymentForm";
 import BookingConfirmation from "./components/payment/BookingConfirmation";
-import BookingDetails from "./components/admin/BookingDetails";
+import BookingDetails from "./components/booking/BookingDetails";
 import { Book } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -71,6 +71,7 @@ const App = () => (
               <Route path="/booking" element={<Layout><BookingCalendar /></Layout>} />
               <Route path="/payment/:bookingId" element={<Layout><PaymentForm /></Layout>} />
               <Route path="/confirmation/:bookingId" element={<Layout><BookingConfirmation /></Layout>} />
+              <Route path="/booking/:bookingId" element={<Layout><BookingDetails /></Layout>} />
 
               {/* Protected Routes */}
               <Route 
@@ -85,10 +86,7 @@ const App = () => (
                 path="/admin" 
                 element={<PrivateRoute element={<Layout><AdminPanel /></Layout>} adminOnly={true} />} 
               />
-              <Route 
-                path="/admin/booking/:bookingId" 
-                element={<PrivateRoute element={<Layout><BookingDetails /></Layout>} adminOnly={true} />} 
-              />
+              
               
               {/* Catch-all Route */}
               <Route path="*" element={<Layout><NotFound /></Layout>} />

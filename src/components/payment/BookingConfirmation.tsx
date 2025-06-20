@@ -6,6 +6,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { format, parseISO } from 'date-fns';
 import { Calendar, Clock, DollarSign, CheckCircle, Download, Loader2 } from 'lucide-react'; // Added Loader2
 import { Booking as BookingType } from '@/types'; // Assuming Booking type is defined
+import { config } from '@/lib/config';
 
 // Define a type for the fetched booking details, ensure it includes status
 interface ConfirmedBooking extends Omit<BookingType, '_id' | 'date' | 'isBooked' | 'paymentStatus'> {
@@ -45,7 +46,7 @@ const BookingConfirmation = () => {
 
     // Function to get response from backend and check booking status
     const getBookingDetails = async (id: string) => {
-      const response = await fetch(`http://localhost:3000/api/bookings/${id}`, {
+      const response = await fetch(`${config.apiUrl}/api/bookings/${id}`, {
         credentials: 'include', // Include if auth is needed to view booking
       });
       if (!response.ok) {
@@ -107,7 +108,7 @@ const BookingConfirmation = () => {
     
     setIsDownloading(true);
     try {
-      const response = await fetch(`http://localhost:3000/api/bookings/${bookingId}/receipt`, {
+      const response = await fetch(`${config.apiUrl}/api/bookings/${bookingId}/receipt`, {
         credentials: 'include' // Include cookies for authentication
       });
       
@@ -239,8 +240,8 @@ const BookingConfirmation = () => {
 
           <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 text-sm text-blue-800">
             {/* Updated message */}
-            <p className="font-medium">A confirmation email may have been sent (if configured).</p>
-            <p>Please keep this reference number for your records.</p>
+            <p className="font-medium">📧 A confirmation email will be sent to your registered email address </p>
+            <p>Please keep this reference number for your records: <strong>{bookingReference}</strong></p>
           </div>
         </CardContent>
 

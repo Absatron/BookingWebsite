@@ -67,6 +67,15 @@ const UserBookings = () => {
     );
   }
 
+    if (!currentUser) {
+      return (
+        <div className="flex justify-center items-center h-screen">
+          <Loader2 className="h-8 w-8 animate-spin text-booking-primary" />
+          <span className="ml-2 text-gray-600">Redirecting to login...</span>
+        </div>
+      );
+    }
+
   // Handle error state
   if (error) {
      return (

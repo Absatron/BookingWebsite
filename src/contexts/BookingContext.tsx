@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { TimeSlot, Booking } from '@/types';
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from './AuthContext';
+import { config } from '@/lib/config';
 
 // Define a type for the raw event data coming from the backend API
 interface BackendEventData {
@@ -43,7 +44,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
   const fetchTimeSlots = useCallback(async () => {
     setIsFetchingSlots(true);
     try {
-      const response = await fetch('http://localhost:3000/api/events');
+      const response = await fetch(`${config.apiUrl}/api/events`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to fetch time slots');
@@ -90,7 +91,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     setIsLoading(true);
     try {
       const formattedDate = format(date, 'yyyy-MM-dd');
-      const response = await fetch('http://localhost:3000/api/events', {
+      const response = await fetch(`${config.apiUrl}/api/events`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -127,7 +128,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
   const deleteTimeSlot = async (id: string): Promise<boolean> => {
     try {
       setIsLoading(true);
-      const response = await fetch(`http://localhost:3000/api/events/${id}`, {
+      const response = await fetch(`${config.apiUrl}/api/events/${id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -170,7 +171,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:3000/api/bookings/initiate', {
+      const response = await fetch(`${config.apiUrl}/api/bookings/initiate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -226,7 +227,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:3000/api/bookings', {
+      const response = await fetch(`${config.apiUrl}/api/bookings`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode, useCallback } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { User } from '@/types';
+import { config } from '@/lib/config';
 
 type AuthContextType = {
   currentUser: User | null;
@@ -22,7 +23,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // maintain consistency with backend session
       const validateSession = async () => {
       try {
-        const response = await fetch('http://localhost:3000/api/user/validate-session', {
+        const response = await fetch(`${config.apiUrl}/api/user/validate-session`, {
           method: 'GET',
           credentials: 'include',
         });
@@ -68,7 +69,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       setLoading(true);
       
-      const response = await fetch('http://localhost:3000/api/user/login', {
+      const response = await fetch(`${config.apiUrl}/api/user/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -133,7 +134,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       setLoading(true);
       
-      const response = await fetch('http://localhost:3000/api/user/register', {
+      const response = await fetch(`${config.apiUrl}/api/user/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -183,7 +184,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = async () => {
     try {
       // Call backend to destroy session
-      const response = await fetch('http://localhost:3000/api/user/logout', {
+      const response = await fetch(`${config.apiUrl}/api/user/logout`, {
         method: 'POST',
         credentials: 'include', // Important: includes cookies in the request
       });

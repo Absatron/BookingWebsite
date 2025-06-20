@@ -57,6 +57,15 @@ const Dashboard = () => {
     );
   }
 
+  if (!currentUser) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-booking-primary" />
+        <span className="ml-2 text-gray-600">Redirecting to login...</span>
+      </div>
+    );
+  }
+
   // Show error state
   if (error) {
     return (
@@ -77,13 +86,18 @@ const Dashboard = () => {
 
   // Helper function to check if a booking is in the future
   const isFutureBooking = (booking: Booking) => {
-    const bookingDateTime = new Date(`${parseISO(booking.slot.date).toISOString().split('T')[0]}T${booking.slot.startTime}`);
+    const bookingDate = parseISO(booking.slot.date);
+    const [hours, minutes] = booking.slot.startTime.split(':').map(Number);
+    const bookingDateTime = new Date(bookingDate);
+    bookingDateTime.setHours(hours, minutes, 0, 0);
     return bookingDateTime > new Date();
   };
-
     // Helper function to check if a time slot is in the future
   const isFutureSlot = (slot: TimeSlot) => {
-    const slotDateTime = new Date(`${parseISO(slot.date).toISOString().split('T')[0]}T${slot.startTime}`);
+    const slotDate = parseISO(slot.date);
+    const [hours, minutes] = slot.startTime.split(':').map(Number);
+    const slotDateTime = new Date(slotDate);
+    slotDateTime.setHours(hours, minutes, 0, 0);
     return slotDateTime > new Date();
   };
 
@@ -233,7 +247,7 @@ const Dashboard = () => {
                 </div>
 
                 <div className="pt-2">
-                  <Link to={`/my-bookings`}>
+                  <Link to={`/booking/${nextBooking.id}`}>
                     <Button variant="link" className="p-0 h-auto text-booking-primary flex items-center">
                       <span>View appointment details</span>
                       <ArrowRight className="ml-1 h-4 w-4" />
@@ -270,8 +284,15 @@ const Dashboard = () => {
             {/* Use userBookings for recent bookings */}
             {userBookings.length > 0 ? (
               <div className="space-y-4">
-                {/* Use parseISO for date */}
-                {userBookings.slice(0, 3).map((booking) => (
+                {/* Sort by appointment date/time in descending order (most recent appointments first) and take first 3 */}
+                {userBookings
+                  .sort((a, b) => {
+                    const dateTimeA = new Date(`${parseISO(a.slot.date).toISOString().split('T')[0]}T${a.slot.startTime}`);
+                    const dateTimeB = new Date(`${parseISO(b.slot.date).toISOString().split('T')[0]}T${b.slot.startTime}`);
+                    return dateTimeB.getTime() - dateTimeA.getTime();
+                  })
+                  .slice(0, 3)
+                  .map((booking) => (
                   <div key={booking.id} className="flex items-center p-3 rounded-md border hover:bg-gray-50 transition-colors">
                     <div className="bg-booking-accent p-2 rounded-full mr-3">
                       <Calendar className="h-4 w-4 text-booking-primary" />

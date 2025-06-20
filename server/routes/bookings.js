@@ -204,7 +204,7 @@ router.get('/:bookingId/receipt', wrapAsync(async (req, res) => {
     }
 
     // Generate PDF receipt
-    const receiptPDF = await generateReceiptPDF(booking);
+    const receiptPDF = await generateReceiptPDF(booking, bookingId);
 
     // Set the content type and disposition for PDF download
     res.set({

@@ -30,119 +30,193 @@ export const generateReceiptPDF = async (booking, bookingReference) => {
         day: 'numeric'
       });
 
-      // Header
-      doc.fontSize(24)
+      // Define layout constants
+      const leftMargin = 50;
+      const rightMargin = 50;
+      const pageWidth = 595; // Full A4 width
+      const contentWidth = pageWidth - leftMargin - rightMargin; // Available content width
+
+      // Professional Header with Brand Bar
+      doc.fillColor('#1a365d')
+         .rect(0, 0, pageWidth, 60)
+         .fill();
+
+      doc.fontSize(28)
          .font('Helvetica-Bold')
-         .fillColor('#1a365d')
-         .text('Kalu Cuts', { align: 'center' });
-
-      doc.fontSize(16)
-         .font('Helvetica')
-         .fillColor('#666666')
-         .text('Booking Receipt', { align: 'center' });
-
-      // Add some space
-      doc.moveDown(2);
-
-      // Draw a line
-      doc.strokeColor('#eeeeee')
-         .lineWidth(1)
-         .moveTo(50, doc.y)
-         .lineTo(550, doc.y)
-         .stroke();
-
-      doc.moveDown(1);
-
-      // Receipt info section
-      const leftColumn = 80;
-      const rightColumn = 300;
-      let currentY = doc.y;
+         .fillColor('#ffffff')
+         .text('KALU CUTS', leftMargin, 20);
 
       doc.fontSize(12)
          .font('Helvetica')
-         .fillColor('#666666')
-         .text('Receipt #:', leftColumn, currentY)
-         .font('Helvetica-Bold')
-         .fillColor('#333333')
-         .text(bookingReference, rightColumn, currentY);
+         .fillColor('#ffffff')
+         .text('Professional Barbering Services', leftMargin, 45);
 
-      currentY += 20;
-      doc.font('Helvetica')
-         .fillColor('#666666')
-         .text('Issue Date:', leftColumn, currentY)
-         .font('Helvetica-Bold')
-         .fillColor('#333333')
-         .text(currentDate, rightColumn, currentY);
-
-      doc.moveDown(2);
-
-      // Booking Details Section
-      doc.fontSize(14)
-         .font('Helvetica-Bold')
-         .fillColor('#333333')
-         .text('Booking Details');
-
-      doc.moveDown(0.5);
-
-      currentY = doc.y;
-
-      // Date
-      doc.fontSize(12)
-         .font('Helvetica')
-         .fillColor('#666666')
-         .text('Date:', leftColumn, currentY)
-         .font('Helvetica-Bold')
-         .fillColor('#333333')
-         .text(bookingDate, rightColumn, currentY);
-
-      currentY += 20;
-
-      // Time
-      doc.font('Helvetica')
-         .fillColor('#666666')
-         .text('Time:', leftColumn, currentY)
-         .font('Helvetica-Bold')
-         .fillColor('#333333')
-         .text(`${booking.startTime} - ${booking.endTime}`, rightColumn, currentY);
-
-      doc.moveDown(2);
-
-      // Total section with border
-      const totalY = doc.y;
-      doc.strokeColor('#333333')
-         .lineWidth(2)
-         .moveTo(50, totalY)
-         .lineTo(550, totalY)
-         .stroke();
-
-      doc.moveDown(0.5);
-
+      // Receipt title and reference in header area
       doc.fontSize(16)
          .font('Helvetica-Bold')
-         .fillColor('#333333')
-         .text('Total Paid:', leftColumn, doc.y)
-         .text(`$${booking.price.toFixed(2)}`, rightColumn, doc.y);
-
-      doc.moveDown(3);
-
-      // Footer
-      doc.strokeColor('#eeeeee')
-         .lineWidth(1)
-         .moveTo(50, doc.y)
-         .lineTo(550, doc.y)
-         .stroke();
-
-      doc.moveDown(1);
+         .fillColor('#ffffff')
+         .text('RECEIPT', leftMargin + contentWidth - 80, 20, { align: 'right', width: 80 });
 
       doc.fontSize(12)
+         .font('Helvetica')
+         .fillColor('#ffffff')
+         .text(`#${bookingReference}`, leftMargin + contentWidth - 120, 40, { align: 'right', width: 120 });
+
+      doc.y = 90; // Position after header
+
+      // Receipt Information Box
+      const receiptBoxY = doc.y;
+      doc.fillColor('#f8f9fa')
+         .rect(leftMargin, receiptBoxY, contentWidth, 60)
+         .fill();
+
+      doc.strokeColor('#e9ecef')
+         .lineWidth(1)
+         .rect(leftMargin, receiptBoxY, contentWidth, 60)
+         .stroke();
+
+      // Receipt info content
+      doc.fontSize(11)
          .font('Helvetica-Bold')
-         .fillColor('#333333')
-         .text('Thank you for your booking!', { align: 'center' });
+         .fillColor('#495057')
+         .text('Receipt Information', leftMargin + 20, receiptBoxY + 15);
 
       doc.fontSize(10)
          .font('Helvetica')
-         .fillColor('#666666')
-         .text('Keep this receipt for your records.', { align: 'center' });
+         .fillColor('#6c757d')
+         .text(`Issue Date: ${currentDate}`, leftMargin + 20, receiptBoxY + 35)
+         .text(`Receipt #: ${bookingReference}`, leftMargin + 280, receiptBoxY + 35);
+
+      doc.y = receiptBoxY + 80;
+
+      // Booking Details Section
+      doc.fontSize(16)
+         .font('Helvetica-Bold')
+         .fillColor('#1a365d')
+         .text('Booking Details', leftMargin);
+
+      doc.moveDown(0.8);
+
+      // Booking details box
+      const bookingBoxY = doc.y;
+      doc.fillColor('#ffffff')
+         .rect(leftMargin, bookingBoxY, contentWidth, 100)
+         .fill();
+
+      doc.strokeColor('#dee2e6')
+         .lineWidth(1)
+         .rect(leftMargin, bookingBoxY, contentWidth, 100)
+         .stroke();
+
+      // Booking content with improved layout
+      const contentX = leftMargin + 25;
+      const labelWidth = 120;
+      const valueX = contentX + labelWidth;
+
+      doc.fontSize(12)
+         .font('Helvetica-Bold')
+         .fillColor('#495057');
+
+      // Appointment Date
+      doc.text('Appointment Date:', contentX, bookingBoxY + 20);
+      doc.font('Helvetica')
+         .fillColor('#212529')
+         .text(bookingDate, valueX, bookingBoxY + 20);
+
+      // Appointment Time
+      doc.font('Helvetica-Bold')
+         .fillColor('#495057')
+         .text('Appointment Time:', contentX, bookingBoxY + 40);
+      doc.font('Helvetica')
+         .fillColor('#212529')
+         .text(`${booking.startTime} - ${booking.endTime}`, valueX, bookingBoxY + 40);
+
+      // Service details if available
+      if (booking.service) {
+        doc.font('Helvetica-Bold')
+           .fillColor('#495057')
+           .text('Service:', contentX, bookingBoxY + 60);
+        doc.font('Helvetica')
+           .fillColor('#212529')
+           .text(booking.service, valueX, bookingBoxY + 60);
+      }
+
+      doc.y = bookingBoxY + 120;
+
+      // Payment Summary Section
+      doc.fontSize(16)
+         .font('Helvetica-Bold')
+         .fillColor('#1a365d')
+         .text('Payment Summary', leftMargin);
+
+      doc.moveDown(0.8);
+
+      // Payment box with highlight
+      const paymentBoxY = doc.y;
+      doc.fillColor('#e8f5e8')
+         .rect(leftMargin, paymentBoxY, contentWidth, 60)
+         .fill();
+
+      doc.strokeColor('#28a745')
+         .lineWidth(2)
+         .rect(leftMargin, paymentBoxY, contentWidth, 60)
+         .stroke();
+
+      // Payment content
+      doc.fontSize(14)
+         .font('Helvetica-Bold')
+         .fillColor('#155724')
+         .text('Total Paid:', leftMargin + 25, paymentBoxY + 15);
+
+      doc.fontSize(20)
+         .font('Helvetica-Bold')
+         .fillColor('#155724')
+         .text(`$${booking.price.toFixed(2)}`, leftMargin + 25, paymentBoxY + 35);
+
+      doc.fontSize(11)
+         .font('Helvetica')
+         .fillColor('#155724')
+         .text('✓ Payment Confirmed', leftMargin + contentWidth - 120, paymentBoxY + 25, { align: 'right', width: 120 });
+
+      doc.y = paymentBoxY + 80;
+
+      // Professional Footer
+      doc.moveDown(2);
+      
+      // Footer separator
+      doc.strokeColor('#dee2e6')
+         .lineWidth(1)
+         .moveTo(leftMargin, doc.y)
+         .lineTo(leftMargin + contentWidth, doc.y)
+         .stroke();
+
+      doc.moveDown(1);
+
+      // Thank you message
+      doc.fontSize(14)
+         .font('Helvetica-Bold')
+         .fillColor('#1a365d')
+         .text('Thank you for choosing Kalu Cuts!', { align: 'center' });
+
+      doc.moveDown(0.5);
+
+      doc.fontSize(10)
+         .font('Helvetica')
+         .fillColor('#6c757d')
+         .text('Please keep this receipt for your records', { align: 'center' });
+
+      doc.moveDown(1);
+
+      // Contact information
+      doc.fontSize(9)
+         .font('Helvetica')
+         .fillColor('#868e96')
+         .text('For questions or concerns, please contact us:', { align: 'center' });
+
+      doc.fontSize(9)
+         .font('Helvetica-Bold')
+         .fillColor('#495057')
+         .text('Email: info@kalucuts.com | Phone: (555) 123-4567', { align: 'center' });
 
       // Finalize the PDF
       doc.end();

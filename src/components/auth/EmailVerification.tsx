@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { config } from '@/lib/config';
 
 const EmailVerification: React.FC = () => {
     const [searchParams] = useSearchParams();
@@ -26,7 +27,7 @@ const EmailVerification: React.FC = () => {
 
     const verifyEmail = async (verificationToken: string) => {
         try {
-            const response = await fetch('http://localhost:3000/api/user/verify-email', {
+            const response = await fetch(`${config.apiUrl}/api/user/verify-email`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -60,7 +61,7 @@ const EmailVerification: React.FC = () => {
         if (!email) return;
 
         try {
-            const response = await fetch('http://localhost:3000/api/user/resend-verification', {
+            const response = await fetch(`${config.apiUrl}/api/user/resend-verification`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

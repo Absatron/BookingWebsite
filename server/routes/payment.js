@@ -2,7 +2,8 @@ import express from 'express';
 import { wrapAsync } from '../utils/error-utils.js';
 import dotenv from 'dotenv';
 import Stripe from 'stripe';
-import { Booking } from '../models.js'; // Import Booking model
+import { Booking, User } from '../models.js'; // Import Booking and User models
+import { sendBookingConfirmationEmail } from '../utils/email-service.js';
 
 dotenv.config();
 
@@ -37,11 +38,9 @@ router.post('/create-checkout-session', urlencodedParser, wrapAsync(async (req, 
         ],
         mode: 'payment',
         payment_method_types: ['card', 'revolut_pay'],
-        expires_at: Math.floor(Date.now() / 1000) + (30 * 60), // 30 minutes from now
-        // Ensure your frontend routing handles /confirmation/:bookingId
-        success_url: `http://localhost:8080/confirmation/${bookingId}?session_id={CHECKOUT_SESSION_ID}`,
-        // Redirect back to payment page on cancel, passing bookingId
-        cancel_url: `http://localhost:8080/payment/${bookingId}?cancelled=true`,
+        expires_at: Math.floor(Date.now() / 1000) + (30 * 60),
+        success_url: `${process.env.CLIENT_URL}/confirmation/${bookingId}?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.CLIENT_URL}/payment/${bookingId}?cancelled=true`,
         metadata: {
             bookingId: bookingId,
         },
@@ -57,13 +56,42 @@ router.post('/create-checkout-session', urlencodedParser, wrapAsync(async (req, 
 
 const confirmBooking = async (bookingId) => {
     try {
-        const booking = await Booking.findById(bookingId);
+        const booking = await Booking.findById(bookingId).populate('bookedBy');
         
         if (booking && booking.status === 'pending') {
             booking.status = 'confirmed';
             booking.createdAt = new Date();
             await booking.save();
             console.log(`Booking ${bookingId} status updated to confirmed.`);
+            
+            // Send confirmation email if user exists and has email
+            if (booking.bookedBy && booking.bookedBy.email) {
+                try {
+                    // Check if email service is configured
+                    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+                        console.warn('Email service not configured - skipping confirmation email');
+                    } else {
+                        const bookingDetails = {
+                            bookingId: booking._id,
+                            date: booking.date,
+                            startTime: booking.startTime,
+                            endTime: booking.endTime,
+                            price: booking.price
+                        };
+                        
+                        await sendBookingConfirmationEmail(
+                            booking.bookedBy.email,
+                            booking.bookedBy.name,
+                            bookingDetails
+                        );
+                        console.log(`Confirmation email sent to ${booking.bookedBy.email} for booking ${bookingId}`);
+                    }
+                } catch (emailError) {
+                    // Log email error but don't fail the booking confirmation
+                    console.error(`Failed to send confirmation email for booking ${bookingId}:`, emailError);
+                }
+            }
+            
             return { success: true, message: 'Booking confirmed' };
         } else if (booking) {
             console.warn(`Webhook Warning: Booking ${bookingId} already processed or not in pending state. Status: ${booking.status}`);
