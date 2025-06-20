@@ -84,6 +84,10 @@ const bookingSchema = new mongoose.Schema({
     createdAt: {
         type: Date,
         default: Date.now
+    },
+    reservedAt: {
+        type: Date,
+        index: true // Index for faster queries
     }
 })
 

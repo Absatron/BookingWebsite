@@ -105,6 +105,40 @@ const PaymentForm = () => {
     };
 
     fetchBookingDetails();
+
+    // Add cleanup function for navigation away
+    const handleBeforeUnload = () => {
+      // Only cancel if we have a booking and it's still pending
+      if (bookingId && bookingDetails?.status === 'pending') {
+        // Use navigator.sendBeacon for reliable cleanup on page unload
+        navigator.sendBeacon(
+          `http://localhost:3000/api/bookings/${bookingId}/cancel`,
+          JSON.stringify({})
+        );
+      }
+    };
+
+    // Add event listeners
+  window.addEventListener('beforeunload', handleBeforeUnload);
+
+  // Cleanup function - runs when component unmounts
+  return () => {
+    window.removeEventListener('beforeunload', handleBeforeUnload);
+    
+    // If component unmounts and we have a booking ID, try to cancel
+    if (bookingId) {
+      // Use fetch with keepalive for better reliability during unmount
+      fetch(`http://localhost:3000/api/bookings/${bookingId}/cancel`, {
+        method: 'POST',
+        credentials: 'include',
+        keepalive: true // Important: keeps request alive even if page is closing
+      }).catch(error => {
+        console.warn('Failed to cancel booking on unmount:', error);
+      });
+    }
+  };
+
+
   }, [bookingId, navigate, toast, cancelled]); // Add cancelled to dependency array
 
 

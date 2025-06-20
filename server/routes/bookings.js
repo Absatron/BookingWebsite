@@ -36,6 +36,7 @@ router.post('/initiate', wrapAsync(async (req, res) => {
     // Update booking status to pending and assign user
     booking.status = 'pending';
     booking.bookedBy = userId;
+    booking.reservedAt = new Date(); // Set the reservation time
     await booking.save();
 
     console.log("Booking initiated (/initate):", booking);
@@ -46,6 +47,41 @@ router.post('/initiate', wrapAsync(async (req, res) => {
         stripePriceId: booking.stripePriceId
     });
 }));
+
+// Add a cleanup function for expired pending bookings
+const cleanupExpiredBookings = async () => {
+  const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000); // 30 minutes ago
+  
+  try {
+    const result = await Booking.updateMany(
+      { 
+        status: 'pending', 
+        reservedAt: { $lt: thirtyMinutesAgo } 
+      },
+      { 
+        status: 'available', 
+        bookedBy: null,
+        $unset: { reservedAt: 1 } // Remove any expiry field if you add one
+      }
+    );
+    
+    if (result.modifiedCount > 0) {
+      console.log(`Cleaned up ${result.modifiedCount} expired pending bookings`);
+    }
+  } catch (error) {
+    console.error('Error cleaning up expired bookings:', error);
+  }
+};
+
+// Run cleanup every 5 minutes
+const cleanupInterval = setInterval(async () => {
+  try {
+    await cleanupExpiredBookings();
+  } catch (error) {
+    console.error('Cleanup interval execution failed:', error);
+    // Interval continues running even if one execution fails
+  }
+}, 5 * 60 * 1000);
 
 
 // Cancel booking (change status from pending to available)
@@ -85,6 +121,7 @@ router.post('/:bookingId/cancel', wrapAsync(async (req, res) => {
     // Reset booking to available state
     booking.status = 'available';
     booking.bookedBy = null;
+    booking.reservedAt = undefined; // Clear the reservation time
     await booking.save();
 
     console.log("Booking cancelled:", booking);
@@ -127,10 +164,12 @@ router.get('/', wrapAsync(async (req, res) => {
 
     // Fetch bookings for the logged-in user
     const bookings = await Booking.find({ bookedBy: userId });
+    console.log("Bookings found for user:", userId, bookings);
 
     // If no bookings are found, return 200 OK with an empty array
     // This is often preferred over 404 for list endpoints
     if (!bookings) { // Should technically check bookings.length === 0 as find returns [] not null
+        console.log("No bookings found for user:", userId);
         return res.status(200).json([]);
     }
 

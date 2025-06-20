@@ -9,7 +9,7 @@ import { Booking } from '@/types'; // Import the Booking type
 
 const UserBookings = () => {
   const { getUserBookings } = useBooking();
-  const { currentUser } = useAuth();
+  const { currentUser, loading } = useAuth();
   const [userBookings, setUserBookings] = useState<Booking[]>([]); // Added state for bookings
   const [isLoading, setIsLoading] = useState<boolean>(true); // Added loading state
   const [error, setError] = useState<string | null>(null); // Added error state
@@ -17,6 +17,9 @@ const UserBookings = () => {
   // useEffect to fetch bookings on mount and when user changes
   useEffect(() => {
     const fetchBookings = async () => {
+
+      if (loading) return;
+
       if (!currentUser) {
         setIsLoading(false);
         setUserBookings([]); // Clear bookings if user logs out
@@ -45,7 +48,7 @@ const UserBookings = () => {
     };
 
     fetchBookings();
-  }, [currentUser, getUserBookings]); // Rerun effect if user or fetch function changes
+  }, [currentUser, loading, getUserBookings]); // Rerun effect if user or fetch function changes
 
   // Handle logged out state
   if (!currentUser) {
@@ -53,7 +56,7 @@ const UserBookings = () => {
   }
 
   // Handle loading state
-  if (isLoading) {
+  if (loading || isLoading) {
     return (
       <div className="booking-container py-8">
         <div className="flex justify-center items-center py-12">
