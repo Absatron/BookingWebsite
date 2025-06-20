@@ -8,15 +8,18 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
-    proxy: {
-      // Proxy API requests to the backend server
-      '/api': {
-        target: process.env.VITE_API_URL || 'http://localhost:3000',
-        changeOrigin: true,
-        secure: false,
-        // Keep the /api prefix since backend expects it
+    // Only use proxy in development mode
+    ...(mode === 'development' && {
+      proxy: {
+        // Proxy API requests to the backend server (development only)
+        '/api': {
+          target: 'http://localhost:3000',
+          changeOrigin: true,
+          secure: false,
+          // Keep the /api prefix since backend expects it
+        },
       },
-    },
+    }),
   },
   plugins: [
     react(),

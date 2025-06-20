@@ -1,7 +1,15 @@
 // Frontend configuration
 export const config = {
-  apiUrl: import.meta.env.VITE_API_URL || 'http://localhost:3000',
-  clientUrl: import.meta.env.VITE_CLIENT_URL || 'http://localhost:8080',
+  apiUrl: import.meta.env.VITE_API_URL || 
+          (import.meta.env.MODE === 'production' 
+            ? 'https://kalucuts.onrender.com'  // Production API
+            : 'http://localhost:3000'         // Development API (through proxy)
+          ),
+  clientUrl: import.meta.env.VITE_CLIENT_URL || 
+            (import.meta.env.MODE === 'production'
+              ? 'https://bookingapp-m8mns1097-absatrons-projects.vercel.app'
+              : 'http://localhost:8080'
+            ),
 };
 
 // Debug logging in development
