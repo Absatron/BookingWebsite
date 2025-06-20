@@ -127,8 +127,26 @@ app.use(helmet({
 app.use(compression());
 
 // Configure CORS
+const allowedOrigins = [
+    'http://localhost:8080',  // Local development
+    'https://bookingapp-gamma-orcin.vercel.app',  // Production Vercel
+    'https://bookingapp-m8mns1097-absatrons-projects.vercel.app',  // Old Vercel URL
+    process.env.CLIENT_URL  // Environment variable override
+].filter(Boolean); // Remove any undefined values
+
 app.use(cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:8080',
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            console.warn(`🚫 CORS blocked request from origin: ${origin}`);
+            console.log(`✅ Allowed origins: ${allowedOrigins.join(', ')}`);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true, // Allow credentials (cookies, authorization headers, etc)
 }));
 
