@@ -59,7 +59,8 @@ const App = () => (
         <BookingProvider>
           <Toaster />
           <Sonner />
-          <ApiHealthCheck />
+          {/* Only show debug component in development */}
+          {import.meta.env.DEV && <ApiHealthCheck />}
           <BrowserRouter>
             <Routes>
               {/* Public Routes */}
