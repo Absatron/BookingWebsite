@@ -13,7 +13,8 @@ export default defineConfig(({ mode }) => ({
       '/api': {
         target: process.env.VITE_API_URL || 'http://localhost:3000',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''), // Remove /api prefix
+        secure: false,
+        // Keep the /api prefix since backend expects it
       },
     },
   },

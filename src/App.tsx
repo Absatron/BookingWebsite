@@ -33,6 +33,7 @@ import PaymentForm from "./components/payment/PaymentForm";
 import BookingConfirmation from "./components/payment/BookingConfirmation";
 import BookingDetails from "./components/booking/BookingDetails";
 import { Book } from "lucide-react";
+import ApiHealthCheck from "./components/debug/ApiHealthCheck";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +59,7 @@ const App = () => (
         <BookingProvider>
           <Toaster />
           <Sonner />
+          <ApiHealthCheck />
           <BrowserRouter>
             <Routes>
               {/* Public Routes */}
