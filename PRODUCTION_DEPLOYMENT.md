@@ -190,4 +190,70 @@ npm start
 npm test
 ```
 
+## MongoDB Authentication Issues on Render
+
+If you're getting "MongoServerError: bad auth : authentication failed" on Render, follow these steps:
+
+### 1. Check MongoDB Atlas Configuration
+
+1. **IP Whitelist**: Add `0.0.0.0/0` to allow all IPs (required for Render)
+2. **Database User**: Ensure the user exists and has proper permissions
+3. **Cluster Status**: Verify the cluster is not paused
+4. **Connection Limits**: Check if you've exceeded connection limits
+
+### 2. Environment Variables on Render
+
+In your Render dashboard, set these environment variables:
+
+```bash
+# MongoDB Connection (CRITICAL - check for special characters)
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/database
+
+# If your password contains special characters, URL encode them:
+# @ → %40, : → %3A, / → %2F, + → %2B, = → %3D, % → %25
+# Example: password "p@ss:w/rd+" becomes "p%40ss%3Aw%2Frd%2B"
+
+# Other required variables
+SESSION_SECRET=your-super-secure-random-string-here
+NODE_ENV=production
+CLIENT_URL=https://your-render-app.onrender.com
+VITE_CLIENT_URL=https://your-render-app.onrender.com
+VITE_API_URL=https://your-render-app.onrender.com
+```
+
+### 3. Test MongoDB Connection
+
+You can test your connection string locally first:
+
+```bash
+# Run the connection test
+node test-mongodb-connection.js
+```
+
+This will help identify connection string issues before deploying.
+
+### 4. Common MongoDB URI Issues
+
+1. **Special Characters in Password**: Must be URL encoded
+2. **Wrong Database Name**: Ensure the database name in the URI matches your intended database
+3. **Authentication Database**: For Atlas, this is usually handled automatically
+4. **SSL/TLS**: Atlas requires SSL (should be handled automatically with `mongodb+srv://`)
+
+### 5. Debugging in Production
+
+The improved error handling will now provide more specific error messages in the Render logs:
+
+- Authentication errors will show specific troubleshooting steps
+- Connection timeouts will indicate network issues
+- SSL errors will suggest certificate problems
+
+### 6. Render-Specific Considerations
+
+- **IP Ranges**: Render uses dynamic IPs, so whitelist `0.0.0.0/0`
+- **Environment Variables**: Set in Render dashboard, not in `.env` files
+- **Port**: Render automatically sets `PORT` environment variable
+- **Logs**: Check Render logs for detailed error messages
+
+---
+
 Your application is now production-ready! 🚀

@@ -14,6 +14,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
+    "test:mongodb": "node test-mongodb-connection.js",
     "test:watch": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --watch",
     "test:coverage": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --coverage",
     "postbuild": "echo 'Build complete! Ready for deployment.'"

@@ -20,10 +20,31 @@ const app = express();
 const port = process.env.PORT || 8080;
 const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/bookingApp'
 
-mongoose.connect(mongoUri)
-    .then(() => {
-        console.log("CONNECTED TO DATABASE");
-        console.log("MongoDB URI:", mongoUri);
+// MongoDB connection options for production
+const mongoOptions = {
+    retryWrites: true,
+    w: 'majority',
+    maxPoolSize: 10, // Maintain up to 10 socket connections
+    serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
+    socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+};
+
+// Enhanced connection with better error handling
+async function connectToDatabase() {
+    try {
+        console.log("Attempting to connect to MongoDB...");
+        console.log("Environment:", process.env.NODE_ENV);
+        
+        // Don't log the full URI in production for security
+        if (process.env.NODE_ENV === 'production') {
+            console.log("MongoDB URI configured (URI hidden for security)");
+        } else {
+            console.log("MongoDB URI:", mongoUri);
+        }
+
+        await mongoose.connect(mongoUri, mongoOptions);
+        console.log("✅ CONNECTED TO DATABASE");
+        
         // Test email configuration on startup
         testEmailConfiguration().then(result => {
             if (result.success) {
@@ -33,8 +54,33 @@ mongoose.connect(mongoUri)
                 console.warn("   Booking confirmations will not be sent via email");
             }
         });
-    })
-    .catch((err) => console.log(err))
+        
+    } catch (error) {
+        console.error("❌ MongoDB connection error:");
+        console.error("Error name:", error.name);
+        console.error("Error message:", error.message);
+        
+        if (error.name === 'MongoServerError' && error.code === 8000) {
+            console.error("🔑 Authentication failed. Please check:");
+            console.error("   1. MongoDB username and password are correct");
+            console.error("   2. Username/password don't contain special characters that need URL encoding");
+            console.error("   3. Database user has proper permissions");
+            console.error("   4. Connection string format is correct");
+            console.error("   5. IP whitelist includes 0.0.0.0/0 or Render's IP ranges");
+        }
+        
+        // In production, we should exit gracefully
+        if (process.env.NODE_ENV === 'production') {
+            console.error("💥 Database connection failed in production. Exiting...");
+            process.exit(1);
+        } else {
+            console.error("⚠️  Continuing without database connection for development");
+        }
+    }
+}
+
+// Connect to database
+connectToDatabase();
 
 const sessionOptions = { 
     secret: process.env.SESSION_SECRET, // Use environment variable
@@ -42,7 +88,11 @@ const sessionOptions = {
     saveUninitialized: false,
     store: MongoStore.create({
         mongoUrl: mongoUri,
-        touchAfter: 24 * 3600 // lazy session update
+        touchAfter: 24 * 3600, // lazy session update
+        mongoOptions: mongoOptions, // Use the same options as mongoose
+        autoRemove: 'native', // Default
+        autoRemoveInterval: 10, // In minutes. Default
+        collectionName: 'sessions', // Default
     }),
     cookie: {
         maxAge: 24 * 60 * 60 * 1000, // 24 hours for production
