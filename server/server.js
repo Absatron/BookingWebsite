@@ -6,6 +6,7 @@ import paymentRouter from './routes/payment.js';
 import userRouter from './routes/user.js';
 import bookingsRouter from './routes/bookings.js'; 
 import session from 'express-session';
+import MongoStore from 'connect-mongo';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import { testEmailConfiguration } from './utils/email-service.js';
@@ -39,6 +40,10 @@ const sessionOptions = {
     secret: process.env.SESSION_SECRET, // Use environment variable
     resave: false, 
     saveUninitialized: false,
+    store: MongoStore.create({
+        mongoUrl: mongoUri,
+        touchAfter: 24 * 3600 // lazy session update
+    }),
     cookie: {
         maxAge: 24 * 60 * 60 * 1000, // 24 hours for production
         httpOnly: true, // Enable for security
