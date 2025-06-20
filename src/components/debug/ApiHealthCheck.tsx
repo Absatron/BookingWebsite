@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { config } from '../lib/config';
+import { config } from '../../lib/config';
 
 const ApiHealthCheck = () => {
   const [status, setStatus] = useState('checking...');
