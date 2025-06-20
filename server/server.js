@@ -134,12 +134,20 @@ const allowedOrigins = [
     process.env.CLIENT_URL  // Environment variable override
 ].filter(Boolean); // Remove any undefined values
 
+// Add debug logging
+console.log('🔧 CORS Configuration:');
+console.log('   Allowed origins:', allowedOrigins);
+console.log('   CLIENT_URL env var:', process.env.CLIENT_URL);
+
 app.use(cors({
     origin: function (origin, callback) {
+        console.log(`🌍 Incoming request from origin: ${origin}`);
+        
         // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
         
         if (allowedOrigins.includes(origin)) {
+            console.log(`✅ CORS allowed for origin: ${origin}`);
             callback(null, true);
         } else {
             console.warn(`🚫 CORS blocked request from origin: ${origin}`);
