@@ -17,6 +17,12 @@ import compression from 'compression';
 dotenv.config();
 
 const app = express();
+
+// Render uses reverse proxies (Renders load balancer is first proxy) 
+if (process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1);
+}
+
 const port = process.env.PORT || 8080;
 const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/bookingApp'
 
@@ -102,14 +108,6 @@ const sessionOptions = {
     } 
 };
 
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
-    message: 'Too many requests from this IP, please try again later.',
-});
-
-app.use('/api/', limiter);
-
 // Add security headers
 app.use(helmet({
     contentSecurityPolicy: {
@@ -122,6 +120,14 @@ app.use(helmet({
         },
     },
 }));
+
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: 'Too many requests from this IP, please try again later.',
+});
+
+app.use('/api/', limiter);
 
 // Add compression
 app.use(compression());
