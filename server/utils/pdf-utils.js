@@ -60,7 +60,7 @@ export const generateReceiptPDF = async (booking, bookingReference) => {
       doc.fontSize(12)
          .font('Helvetica')
          .fillColor('#ffffff')
-         .text(`#${bookingReference}`, leftMargin + contentWidth - 120, 40, { align: 'right', width: 120 });
+         .text(`#${bookingReference}`, leftMargin + contentWidth - 160, 40, { align: 'right', width: 160 });
 
       doc.y = 90; // Position after header
 
@@ -176,7 +176,7 @@ export const generateReceiptPDF = async (booking, bookingReference) => {
       doc.fontSize(11)
          .font('Helvetica')
          .fillColor('#155724')
-         .text('✓ Payment Confirmed', leftMargin + contentWidth - 120, paymentBoxY + 25, { align: 'right', width: 120 });
+         .text('✓ Payment Confirmed', leftMargin + contentWidth - 140, paymentBoxY + 25, { align: 'right', width: 120 });
 
       doc.y = paymentBoxY + 80;
 
@@ -191,32 +191,6 @@ export const generateReceiptPDF = async (booking, bookingReference) => {
          .stroke();
 
       doc.moveDown(1);
-
-      // Thank you message
-      doc.fontSize(14)
-         .font('Helvetica-Bold')
-         .fillColor('#1a365d')
-         .text('Thank you for choosing Kalu Cuts!', { align: 'center' });
-
-      doc.moveDown(0.5);
-
-      doc.fontSize(10)
-         .font('Helvetica')
-         .fillColor('#6c757d')
-         .text('Please keep this receipt for your records', { align: 'center' });
-
-      doc.moveDown(1);
-
-      // Contact information
-      doc.fontSize(9)
-         .font('Helvetica')
-         .fillColor('#868e96')
-         .text('For questions or concerns, please contact us:', { align: 'center' });
-
-      doc.fontSize(9)
-         .font('Helvetica-Bold')
-         .fillColor('#495057')
-         .text('Email: info@kalucuts.com | Phone: (555) 123-4567', { align: 'center' });
 
       // Finalize the PDF
       doc.end();

@@ -13,8 +13,6 @@ router.post('/initiate', wrapAsync(async (req, res) => {
 
     console.log(req.session);
 
-    // Add a check for userId here since isAuthenticated is removed
-    // PROBLEM WITH THIS: userId - gets logged out too quickly
     if (!userId) {
         return res.status(401).json({ message: 'Authentication required. Please log in.' });
     }

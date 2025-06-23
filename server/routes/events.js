@@ -84,26 +84,20 @@ router.delete('/:id', wrapAsync(async (req, res) => {
         return res.status(400).json({ error: "Invalid ID format" });
     }
 
-    // Optionally, only allow deletion if the slot is 'available'
-    // const booking = await Booking.findOne({ _id: id, status: 'available' });
-    // if (!booking) {
-    //    return res.status(404).json({ error: "Event not found or cannot be deleted (might be booked/pending)." });
-    // }
-    // const deletedBooking = await Booking.findByIdAndDelete(id);
-
-    // For now, allow deletion regardless of status (admin action)
-    const booking = await Booking.findByIdAndDelete(id);
+    const booking = await Booking.findById(id);
     if (!booking) {
-        return res.status(404).json({ error: "Event not found" });
+       return res.status(404).json({ error: "Event not found" });
     }
+    if (booking.status !== 'available') {
+        return res.status(400).json({ error: "Cannot delete an event that is not available." });
+    }
+    const deletedBooking = await Booking.findByIdAndDelete(id);
 
-    res.json({ message: "Event successfully deleted" });
+
+    res.status(200).json({ deletedBooking: deletedBooking, message: "Event successfully deleted" });
 
 }));
 
-// creates availability (a new time slot) in database
-// Added isAdminUser middleware check here if needed, assuming it's defined elsewhere
-// router.post('/', isAdminUser, isValidBooking, wrapAsync(async (req, res) => {
 router.post('/', isValidBooking, wrapAsync(async (req, res) => { // Removed isAdminUser for now if not implemented
     const { date, startTime, endTime, price } = req.body;
 

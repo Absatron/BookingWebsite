@@ -2,7 +2,7 @@ import express from 'express';
 import { wrapAsync } from '../utils/error-utils.js';
 import dotenv from 'dotenv';
 import Stripe from 'stripe';
-import { Booking, User } from '../models.js'; // Import Booking and User models
+import { Booking } from '../models.js';
 import { sendBookingConfirmationEmail } from '../utils/email-service.js';
 
 dotenv.config();
