@@ -165,7 +165,6 @@ app.use('/api/payment', paymentRouter);
 
 // Global middleware (applied after payment router)
 app.use(express.json());
-//app.use(express.urlencoded({ extended: true }))
 app.use(session(sessionOptions));
 
 // Other routers

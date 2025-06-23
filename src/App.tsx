@@ -14,6 +14,8 @@ import Layout from "./components/layout/Layout";
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 // Auth Components
 import LoginForm from "./components/auth/LoginForm";
@@ -69,6 +71,8 @@ const App = () => (
               <Route path="/register" element={<RegisterForm />} />
               <Route path="/verify-email" element={<EmailVerification />} />
               <Route path="/resend-verification" element={<ResendVerification />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
               
               {/* Booking Routes */}
               <Route path="/booking" element={<Layout><BookingCalendar /></Layout>} />

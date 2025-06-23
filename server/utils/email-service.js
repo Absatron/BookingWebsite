@@ -138,6 +138,64 @@ export const sendBookingConfirmationEmail = async (email, name, bookingDetails) 
     await transporter.sendMail(mailOptions);
 };
 
+// Send password reset email to user
+export const sendPasswordResetEmail = async (email, token, name) => {
+    const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${token}`;
+    
+    const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: 'Reset Your Password',
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <div style="background-color: #f59e0b; color: white; padding: 20px; border-radius: 10px 10px 0 0;">
+                        <h1 style="margin: 0; font-size: 24px;">🔒 Password Reset Request</h1>
+                    </div>
+                </div>
+                
+                <div style="padding: 20px; border: 1px solid #e5e7eb; border-radius: 0 0 10px 10px;">
+                    <h2 style="color: #333; margin-top: 0;">Hello ${name}!</h2>
+                    <p style="color: #666; font-size: 16px; line-height: 1.6;">
+                        We received a request to reset your password. Click the button below to create a new password:
+                    </p>
+                    
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="${resetUrl}" 
+                           style="background-color: #dc2626; color: white; padding: 12px 30px; 
+                                  text-decoration: none; border-radius: 5px; display: inline-block;
+                                  font-weight: bold;">
+                            Reset Password
+                        </a>
+                    </div>
+                    
+                    <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;">
+                        <h4 style="color: #92400e; margin-top: 0;">⚠️ Important Security Information:</h4>
+                        <ul style="color: #92400e; margin: 0; padding-left: 20px; font-size: 14px;">
+                            <li>This link will expire in <strong>15 minutes</strong></li>
+                            <li>If you didn't request this reset, please ignore this email</li>
+                            <li>Never share this link with anyone</li>
+                        </ul>
+                    </div>
+                    
+                    <p style="color: #666; font-size: 14px; margin-top: 30px;">
+                        If the button doesn't work, copy and paste this link into your browser:
+                    </p>
+                    <p style="color: #3b82f6; font-size: 14px; word-break: break-all;">
+                        <a href="${resetUrl}">${resetUrl}</a>
+                    </p>
+                    
+                    <p style="color: #666; font-size: 14px; margin-top: 30px;">
+                        If you continue to have problems, please contact our support team.
+                    </p>
+                </div>
+            </div>
+        `
+    };
+    
+    await transporter.sendMail(mailOptions);
+};
+
 // Test email configuration
 export const testEmailConfiguration = async () => {
     try {

@@ -3,7 +3,7 @@ import { wrapAsync } from '../utils/error-utils.js';
 import { User } from '../models.js';
 import dotenv from 'dotenv';
 import { checkIfEmailIsAdmin } from '../utils/auth-utils.js';
-import { generateVerificationToken, sendVerificationEmail } from '../utils/email-service.js';
+import { generateVerificationToken, sendVerificationEmail, sendPasswordResetEmail } from '../utils/email-service.js';
 
 dotenv.config();
 
@@ -22,7 +22,7 @@ const isValidPassword = (password) => {
     // Contains at least one lowercase letter
     // Contains at least one number
     // Contains at least one special character
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]{8,}$/;
     return passwordRegex.test(password);
 };
 
@@ -37,7 +37,7 @@ router.post('/register', wrapAsync(async (req, res) => {
     // Validate password strength
     if (!isValidPassword(password)) {
         return res.status(400).json({ 
-            message: 'Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&)'
+            message: 'Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character'
         });
     }
 
@@ -236,6 +236,117 @@ router.post('/resend-verification', wrapAsync(async (req, res) => {
         console.error('Email sending failed:', error);
         return res.status(500).json({ message: 'Failed to send verification email. Please try again.' });
     }
+}));
+
+router.post('/forgot-password', wrapAsync(async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ message: 'Email is required' });
+    }
+
+    if (!isValidEmail(email)) {
+        return res.status(400).json({ message: 'Invalid email format' });
+    }
+
+    const user = await User.findOne({ email });
+
+    // Always return success message to prevent email enumeration attacks
+    if (!user) {
+        return res.json({ 
+            message: 'If an account with that email exists, we have sent a password reset link.' 
+        });
+    }
+
+    // Generate password reset token
+    const resetToken = generateVerificationToken();
+    const resetTokenExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+    // Save reset token to user
+    user.passwordResetToken = resetToken;
+    user.passwordResetExpiry = resetTokenExpiry;
+    await user.save();
+
+    try {
+        await sendPasswordResetEmail(email, resetToken, user.name);
+        
+        return res.json({
+            message: 'If an account with that email exists, we have sent a password reset link.'
+        });
+    } catch (error) {
+        console.error('Password reset email failed:', error);
+        // Clear the token if email fails
+        user.passwordResetToken = undefined;
+        user.passwordResetExpiry = undefined;
+        await user.save();
+        
+        return res.status(500).json({ 
+            message: 'Failed to send password reset email. Please try again.' 
+        });
+    }
+}));
+
+router.post('/reset-password', wrapAsync(async (req, res) => {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+        return res.status(400).json({ message: 'Token and new password are required' });
+    }
+
+    console.log('Resetting password with token:', token);
+
+    // Validate new password strength
+    if (!isValidPassword(newPassword)) {
+        return res.status(400).json({ 
+            message: 'Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character'
+        });
+    }
+
+    const user = await User.findOne({ 
+        passwordResetToken: token,
+        passwordResetExpiry: { $gt: new Date() } // Check if token hasn't expired
+    });
+
+    if (!user) {
+        return res.status(400).json({ 
+            message: 'Invalid or expired password reset token' 
+        });
+    }
+
+    // Update password and clear reset token
+    user.password = newPassword;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpiry = undefined;
+    await user.save();
+
+    // Log the user out of all sessions for security
+    // Note: This would require additional session management if you want to invalidate all sessions
+
+    return res.json({
+        message: 'Password has been reset successfully. You can now log in with your new password.'
+    });
+}));
+
+router.get('/verify-reset-token/:token', wrapAsync(async (req, res) => {
+    const { token } = req.params;
+
+    const user = await User.findOne({
+        passwordResetToken: token,
+        passwordResetExpiry: { $gt: new Date() }
+    });
+
+    if (!user) {
+        return res.status(400).json({ 
+            message: 'Invalid or expired password reset token',
+            valid: false 
+        });
+    }
+
+    return res.json({ 
+        message: 'Token is valid',
+        valid: true,
+        email: user.email // Optional: to show which email the reset is for
+    });
 }));
 
 export default router;

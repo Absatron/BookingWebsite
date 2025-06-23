@@ -66,19 +66,21 @@ const LoginForm = () => {
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </Button>
+            
+           
           </form>
         </CardContent>
         <CardFooter className="flex flex-col">
+           <div className="text-center mt-4">
+              <Link to="/forgot-password" className="text-sm text-booking-primary hover:underline">
+                Forgot your password?
+              </Link>
+            </div>
           <div className="text-center text-sm text-gray-600 mt-2">
             Don't have an account?{' '}
             <Link to="/register" className="text-booking-primary font-medium hover:underline">
               Sign up
             </Link>
-          </div>
-          <div className="mt-4 text-xs text-center text-gray-500">
-            <p>Demo accounts:</p>
-            <p>Admin: admin@example.com (any password)</p>
-            <p>User: user@example.com (any password)</p>
           </div>
         </CardFooter>
       </Card>
