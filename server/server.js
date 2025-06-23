@@ -94,17 +94,13 @@ const sessionOptions = {
     saveUninitialized: false,
     store: MongoStore.create({
         mongoUrl: mongoUri,
-        touchAfter: 24 * 3600, // lazy session update
-        mongoOptions: mongoOptions, // Use the same options as mongoose
-        autoRemove: 'native', // Default
-        autoRemoveInterval: 10, // In minutes. Default
-        collectionName: 'sessions', // Default
+        touchAfter: 24 * 3600 // lazy session update
     }),
     cookie: {
         maxAge: 24 * 60 * 60 * 1000, // 24 hours for production
         httpOnly: true, // Enable for security
         secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-        sameSite: 'strict' // CSRF protection
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax' // Allow cross-site cookies in production
     } 
 };
 
@@ -162,6 +158,8 @@ app.use(cors({
         }
     },
     credentials: true, // Allow credentials (cookies, authorization headers, etc)
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }));
 
 app.use(express.static("dist"));

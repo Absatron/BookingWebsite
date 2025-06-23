@@ -108,6 +108,7 @@ router.post('/login', wrapAsync(async (req, res) => {
         req.session.user_id = user._id;
         req.session.admin = isAdmin;
 
+        console.log('User logged in successfully:', user._id);
         console.log('Session:', req.session);
 
         return res.json({
@@ -122,17 +123,27 @@ router.post('/login', wrapAsync(async (req, res) => {
 router.get('/validate-session', wrapAsync(async (req, res) => {
     const userId = req.session.user_id;
     
+    console.log('🔍 Session Validation Debug:');
+    console.log('   Session ID:', req.sessionID);
+    console.log('   User ID from session:', userId);
+    console.log('   Full session object:', req.session);
+    console.log('   Cookies from request:', req.headers.cookie);
+    console.log('   Origin:', req.headers.origin);
+    
     if (!userId) {
-        // session expired or not created
+        console.log('❌ No user ID in session - returning 401');
         return res.status(401).json({ message: 'No active session' });
     }
     
     const user = await User.findById(userId);
     if (!user) {
+        console.log('❌ User not found in database - returning 401');
         return res.status(401).json({ message: 'User not found' });
     }
     
     const isAdmin = checkIfEmailIsAdmin(user.email);
+    
+    console.log('✅ Session validation successful for user:', user.email);
     
     return res.json({
         userId: user._id,
