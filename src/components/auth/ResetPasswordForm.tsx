@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Lock, Eye, EyeOff } from 'lucide-react';
+import { config } from '@/lib/config';
 
 export const ResetPasswordForm: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -25,7 +26,7 @@ export const ResetPasswordForm: React.FC = () => {
   useEffect(() => {
     if (token) {
       // Verify token on component mount
-      fetch(`/api/user/verify-reset-token/${token}`)
+      fetch(`${config.apiUrl}/api/user/verify-reset-token/${token}`)
         .then(res => res.json())
         .then(data => {
           setTokenValid(data.valid);
@@ -56,7 +57,7 @@ export const ResetPasswordForm: React.FC = () => {
     setMessage('');
 
     try {
-      const response = await fetch('/api/user/reset-password', {
+      const response = await fetch(`${config.apiUrl}/api/user/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, newPassword: password })

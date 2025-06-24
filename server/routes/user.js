@@ -223,6 +223,7 @@ router.post('/forgot-password', wrapAsync(async (req, res) => {
     }
 
     const user = await User.findOne({ email });
+    console.log('🔑 Password reset request for email:', email);
 
     // Always return success message to prevent email enumeration attacks
     if (!user) {

@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Mail, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { config } from '@/lib/config';
 
 interface ForgotPasswordFormProps {
   onBackToLogin?: () => void;
@@ -23,7 +24,7 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBackTo
     setMessage('');
 
     try {
-      const response = await fetch('/api/user/forgot-password', {
+      const response = await fetch(`${config.apiUrl}/api/user/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
