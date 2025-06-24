@@ -145,7 +145,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Features */}
+    {/* Features 
       <section className="py-16 bg-gray-50">
         <div className="booking-container">
           <div className="text-center mb-12">
@@ -166,8 +166,9 @@ const Home = () => {
           </div>
         </div>
       </section>
+    */}
 
-      {/* Testimonials */}
+      {/* Testimonials
       <section className="py-16 bg-white">
         <div className="booking-container">
           <div className="text-center mb-12">
@@ -197,8 +198,9 @@ const Home = () => {
           </div>
         </div>
       </section>
+     */}
 
-      {/* CTA */}
+      {/* CTA 
       <section className="py-16 bg-booking-primary text-white">
         <div className="booking-container text-center">
           <h2 className="text-3xl font-bold mb-6">Ready to Get Started?</h2>
@@ -219,6 +221,7 @@ const Home = () => {
           </div>
         </div>
       </section>
+    */}
     </div>
   );
 };

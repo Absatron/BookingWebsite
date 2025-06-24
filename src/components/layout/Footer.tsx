@@ -11,7 +11,7 @@ const Footer = () => {
           <div>
             <div className="flex items-center gap-2 mb-4">
               <Calendar className="h-5 w-5" />
-              <h3 className="font-bold text-xl">BookMaster</h3>
+              <h3 className="font-bold text-xl">BookingWithAbs</h3>
             </div>
             <p className="text-gray-300 mb-4">
               The easiest way to schedule and manage your appointments online.
