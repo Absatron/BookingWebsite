@@ -3,19 +3,16 @@ import mongoose from 'mongoose'; // <-- Add this import
 import { Booking } from '../models.js';
 import { wrapAsync } from '../utils/error-utils.js';
 import { generateReceiptPDF } from '../utils/pdf-utils.js';
+import { authenticateToken } from '../utils/jwt-utils.js';
 
 const router = express.Router();
 
 // Initiate booking
-router.post('/initiate', wrapAsync(async (req, res) => {
+router.post('/initiate', authenticateToken, wrapAsync(async (req, res) => {
     const { slotId } = req.body;
-    const userId = req.session.user_id;
+    const userId = req.user.userId;
 
-    console.log(req.session);
-
-    if (!userId) {
-        return res.status(401).json({ message: 'Authentication required. Please log in.' });
-    }
+    console.log('User from JWT:', req.user);
 
     if (!slotId) {
         return res.status(400).json({ message: 'Slot ID is required.' });
@@ -83,15 +80,11 @@ const cleanupInterval = setInterval(async () => {
 
 
 // Cancel booking (change status from pending to available)
-router.post('/:bookingId/cancel', wrapAsync(async (req, res) => {
+router.post('/:bookingId/cancel', authenticateToken, wrapAsync(async (req, res) => {
     const { bookingId } = req.params;
-    const userId = req.session.user_id;
+    const userId = req.user.userId;
 
     console.log("Received request to cancel booking:", bookingId, "for user:", userId);
-
-    if (!userId) {
-        return res.status(401).json({ message: 'Authentication required. Please log in.' });
-    }
 
     if (!mongoose.Types.ObjectId.isValid(bookingId)) {
         return res.status(400).json({ message: 'Invalid booking ID format.' });
@@ -131,9 +124,9 @@ router.post('/:bookingId/cancel', wrapAsync(async (req, res) => {
 }));
 
 // Get specific booking details by ID
-router.get('/:bookingId', wrapAsync(async (req, res) => {
+router.get('/:bookingId', authenticateToken, wrapAsync(async (req, res) => {
     const { bookingId } = req.params;
-    const userId = req.session.user_id; // Optional: Check if the user owns this booking if needed
+    const userId = req.user.userId; // Check if the user owns this booking
 
     if (!mongoose.Types.ObjectId.isValid(bookingId)) {
         return res.status(400).json({ message: 'Invalid booking ID format.' });
@@ -152,13 +145,8 @@ router.get('/:bookingId', wrapAsync(async (req, res) => {
 // Add other booking-related routes here (e.g., confirm payment, get user bookings)
 
 // Get user bookings
-router.get('/', wrapAsync(async (req, res) => {
-    const userId = req.session.user_id;
-
-    if (!userId) {
-         console.log("failed to fetch bookings - no userId in session");
-        return res.status(401).json({ message: 'Authentication required. Please log in.' });
-    }
+router.get('/', authenticateToken, wrapAsync(async (req, res) => {
+    const userId = req.user.userId;
 
     // Fetch bookings for the logged-in user
     const bookings = await Booking.find({ bookedBy: userId });
@@ -176,15 +164,11 @@ router.get('/', wrapAsync(async (req, res) => {
 }));
 
 // Download receipt (PDF) for a booking
-router.get('/:bookingId/receipt', wrapAsync(async (req, res) => {
+router.get('/:bookingId/receipt', authenticateToken, wrapAsync(async (req, res) => {
     const { bookingId } = req.params;
-    const userId = req.session.user_id;
+    const userId = req.user.userId;
 
     console.log("Received request to download receipt for booking:", bookingId, "by user:", userId);
-
-    if (!userId) {
-        return res.status(401).json({ message: 'Authentication required. Please log in.' });
-    }
 
     if (!mongoose.Types.ObjectId.isValid(bookingId)) {
         return res.status(400).json({ message: 'Invalid booking ID format.' });

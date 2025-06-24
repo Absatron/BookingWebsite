@@ -20,23 +20,35 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const { toast } = useToast();
 
   useEffect(() => {
-      // maintain consistency with backend session
-      const validateSession = async () => {
+      // Validate JWT token with backend
+      const validateToken = async () => {
       try {
-        console.log('🔍 Frontend: Validating session with backend...');
-        console.log('   API URL:', `${config.apiUrl}/api/user/validate-session`);
-        console.log('   Document cookies:', document.cookie);
+        const token = localStorage.getItem('authToken');
         
-        const response = await fetch(`${config.apiUrl}/api/user/validate-session`, {
+        if (!token) {
+          console.log('🔍 Frontend: No token found in localStorage');
+          setCurrentUser(null);
+          setLoading(false);
+          return;
+        }
+
+        console.log('🔍 Frontend: Validating JWT token with backend...');
+        console.log('   API URL:', `${config.apiUrl}/api/user/validate-token`);
+        console.log('   Token exists:', !!token);
+        
+        const response = await fetch(`${config.apiUrl}/api/user/validate-token`, {
           method: 'GET',
-          credentials: 'include',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
         });
 
-        console.log('🔍 Frontend: Session validation response:', response.status);
+        console.log('🔍 Frontend: Token validation response:', response.status);
 
         if (response.ok) {
           const data = await response.json();
-          console.log('✅ Frontend: Session valid, user data:', data);
+          console.log('✅ Frontend: Token valid, user data:', data);
           const user: User = {
             id: data.userId,
             email: data.email,
@@ -46,26 +58,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setCurrentUser(user);
           localStorage.setItem('currentUser', JSON.stringify(user));
         } else {
-          // Session is invalid, clear localStorage
-          console.log('❌ Frontend: Session invalid, clearing user data');
+          // Token is invalid, clear localStorage
+          console.log('❌ Frontend: Token invalid, clearing user data');
           setCurrentUser(null);
           localStorage.removeItem('currentUser');
+          localStorage.removeItem('authToken');
         }
       } catch (error) {
-        console.error('❌ Frontend: Session validation error:', error);
+        console.error('❌ Frontend: Token validation error:', error);
         setCurrentUser(null);
         localStorage.removeItem('currentUser');
+        localStorage.removeItem('authToken');
       } finally {
         setLoading(false);
       }
     };
 
-    validateSession();
+    validateToken();
   }, []);
 
   const handleSessionExpired = useCallback(() => {
     setCurrentUser(null);
     localStorage.removeItem('currentUser');
+    localStorage.removeItem('authToken');
     toast({
       title: "Session Expired",
       description: "Your session has expired. Please log in again.",
@@ -79,7 +94,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       console.log('🔑 Frontend: Attempting login...');
       console.log('   API URL:', `${config.apiUrl}/api/user/login`);
-      console.log('   Credentials: include');
       
       const response = await fetch(`${config.apiUrl}/api/user/login`, {
         method: 'POST',
@@ -87,7 +101,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password }),
-        credentials: 'include', // Important for handling cookies/session
       });
 
       const data = await response.json();
@@ -118,6 +131,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return false;
       }
 
+      // Store JWT token
+      localStorage.setItem('authToken', data.token);
+
       const user: User = {
         id: data.userId,
         email: data.email,
@@ -129,7 +145,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       localStorage.setItem('currentUser', JSON.stringify(user));
       
       console.log('✅ Frontend: Login successful, user set:', user);
-      console.log('🍪 Frontend: Document cookies after login:', document.cookie);
+      console.log('🔑 Frontend: JWT token stored in localStorage');
       
       toast({
         title: "Login successful",
@@ -159,7 +175,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password, name }),
-        credentials: 'include', // Important for handling cookies/session
       });
 
       const data = await response.json();
@@ -181,12 +196,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       // Don't set user as logged in since they need to verify email first
       return true;
-      
-      toast({
-        title: "Registration successful",
-        description: `Welcome, ${name}!`,
-      });
-      return true;
     } catch (error) {
       console.error("Registration error:", error);
       toast({
@@ -202,29 +211,33 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logout = async () => {
     try {
-      // Call backend to destroy session
-      const response = await fetch(`${config.apiUrl}/api/user/logout`, {
-        method: 'POST',
-        credentials: 'include', // Important: includes cookies in the request
-      });
-
-      if (!response.ok) {
-        throw new Error(`Logout failed with status ${response.status}`);
-      }
-      
-      // Clear frontend state
+      // Clear frontend state immediately since JWT is stateless
       setCurrentUser(null);
       localStorage.removeItem('currentUser');
+      localStorage.removeItem('authToken');
+      
+      // Optional: Call backend for logging/audit purposes
+      await fetch(`${config.apiUrl}/api/user/logout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
       toast({
         title: "Logged out",
         description: "You have been successfully logged out",
       });
     } catch (error) {
       console.error('Logout error:', error);
+      // Even if backend call fails, still clear local state
+      setCurrentUser(null);
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('authToken');
+      
       toast({
-        title: "Logout Error",
-        description: "There was a problem logging out. Please try again.",
-        variant: "destructive",
+        title: "Logged out",
+        description: "You have been logged out",
       });
     }
   };

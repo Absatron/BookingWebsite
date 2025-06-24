@@ -41,6 +41,15 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
   const { toast } = useToast();
   const { currentUser , handleSessionExpired } = useAuth();
 
+  // Helper function to get auth headers
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('authToken');
+    return {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` })
+    };
+  };
+
   const fetchTimeSlots = useCallback(async () => {
     setIsFetchingSlots(true);
     try {
@@ -93,8 +102,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       const formattedDate = format(date, 'yyyy-MM-dd');
       const response = await fetch(`${config.apiUrl}/api/events`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+        headers: getAuthHeaders(),
         body: JSON.stringify({ date: formattedDate, startTime, endTime, price }),
       });
 
@@ -130,7 +138,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       setIsLoading(true);
       const response = await fetch(`${config.apiUrl}/api/events/${id}`, {
         method: 'DELETE',
-        credentials: 'include',
+        headers: getAuthHeaders(),
       });
 
       const data = await response.json();
@@ -173,10 +181,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     try {
       const response = await fetch(`${config.apiUrl}/api/bookings/initiate`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
+        headers: getAuthHeaders(),
         body: JSON.stringify({ slotId }),
       });
 
@@ -229,10 +234,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     try {
       const response = await fetch(`${config.apiUrl}/api/bookings`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // Important for sending session cookie
+        headers: getAuthHeaders(),
       });
 
       if (!response.ok) {

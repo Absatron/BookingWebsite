@@ -4,6 +4,7 @@ import { User } from '../models.js';
 import dotenv from 'dotenv';
 import { checkIfEmailIsAdmin } from '../utils/auth-utils.js';
 import { generateVerificationToken, sendVerificationEmail, sendPasswordResetEmail } from '../utils/email-service.js';
+import { generateToken, authenticateToken } from '../utils/jwt-utils.js';
 
 dotenv.config();
 
@@ -96,74 +97,41 @@ router.post('/login', wrapAsync(async (req, res) => {
         });
     }
 
+    // Generate JWT token instead of session
+    const token = generateToken(user);
     const isAdmin = checkIfEmailIsAdmin(email);
 
-    // 🔒 Regenerate session to prevent fixation
-    req.session.regenerate((err) => {
-        if (err) {
-            console.error('Session regeneration error:', err);
-            return res.status(500).json({ message: 'Session error' });
-        }
+    console.log('✅ User logged in successfully with JWT:', user._id);
+    console.log('   Token generated for user:', user.email);
 
-        req.session.user_id = user._id;
-        req.session.admin = isAdmin;
-
-        console.log('User logged in successfully:', user._id);
-        console.log('Session:', req.session);
-
-        return res.json({
-            userId: user._id,
-            email: user.email,
-            name: user.name, 
-            isAdmin,
-        });
+    return res.json({
+        token,
+        userId: user._id,
+        email: user.email,
+        name: user.name, 
+        isAdmin,
     });
 }));
 
-router.get('/validate-session', wrapAsync(async (req, res) => {
-    const userId = req.session.user_id;
-    
-    console.log('🔍 Session Validation Debug:');
-    console.log('   Session ID:', req.sessionID);
-    console.log('   User ID from session:', userId);
-    console.log('   Full session object:', req.session);
-    console.log('   Cookies from request:', req.headers.cookie);
-    console.log('   Origin:', req.headers.origin);
-    
-    if (!userId) {
-        console.log('❌ No user ID in session - returning 401');
-        return res.status(401).json({ message: 'No active session' });
-    }
-    
-    const user = await User.findById(userId);
-    if (!user) {
-        console.log('❌ User not found in database - returning 401');
-        return res.status(401).json({ message: 'User not found' });
-    }
-    
-    const isAdmin = checkIfEmailIsAdmin(user.email);
-    
-    console.log('✅ Session validation successful for user:', user.email);
+router.get('/validate-token', authenticateToken, wrapAsync(async (req, res) => {
+    // If we reach here, the token is valid (middleware already checked)
+    console.log('✅ Token validation successful for user:', req.user.email);
     
     return res.json({
-        userId: user._id,
-        email: user.email,
-        name: user.name,
-        isAdmin,
+        userId: req.user.userId,
+        email: req.user.email,
+        name: req.user.name,
+        isAdmin: req.user.isAdmin,
     });
 }));
 
 
 router.post('/logout', (req, res) => {
-    req.session.destroy((err) => {
-      if (err) {
-        console.error('Session destroy error:', err);
-        return res.status(500).json({ message: 'Logout failed' });
-      }
-      res.clearCookie('sessionId'); // Clear the custom cookie name
-      return res.json({ message: 'User was successfully logged out' });
-    });
-  });
+    // With JWT, logout is handled client-side by removing the token
+    // Server doesn't need to do anything since JWT is stateless
+    console.log('✅ User logout request processed (JWT is stateless)');
+    return res.json({ message: 'Logged out successfully' });
+});
   
 router.post('/verify-email', wrapAsync(async (req, res) => {
     const { token } = req.body;
@@ -187,25 +155,19 @@ router.post('/verify-email', wrapAsync(async (req, res) => {
     user.verificationToken = undefined; // Remove the token once used
     await user.save();
 
+    // Generate JWT token and log the user in
+    const jwtToken = generateToken(user);
     const isAdmin = checkIfEmailIsAdmin(user.email);
 
-    // Log the user in after verification
-    req.session.regenerate((err) => {
-        if (err) {
-            console.error('Session regeneration error:', err);
-            return res.status(500).json({ message: 'Session error' });
-        }
-        
-        req.session.user_id = user._id;
-        req.session.admin = isAdmin;
+    console.log('✅ Email verified and user logged in with JWT:', user._id);
 
-        return res.json({
-            message: 'Email verified successfully! You are now logged in.',
-            userId: user._id,
-            email: user.email,
-            name: user.name,
-            isAdmin
-        });
+    return res.json({
+        message: 'Email verified successfully! You are now logged in.',
+        token: jwtToken,
+        userId: user._id,
+        email: user.email,
+        name: user.name,
+        isAdmin
     });
 }));
 

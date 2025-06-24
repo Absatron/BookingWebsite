@@ -68,8 +68,12 @@ const PaymentForm = () => {
       setProcessing(false); // Reset processing state on fetch
       try {
         // Make sure credentials are included if your backend route needs the session
+        const token = localStorage.getItem('authToken');
         const response = await fetch(`${config.apiUrl}/api/bookings/${bookingId}`, {
-           credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` })
+          },
         });
         const data = await response.json();
 
@@ -128,10 +132,14 @@ const PaymentForm = () => {
     
     // If component unmounts and we have a booking ID, try to cancel
     if (bookingId) {
+      const token = localStorage.getItem('authToken');
       // Use fetch with keepalive for better reliability during unmount
       fetch(`${config.apiUrl}/api/bookings/${bookingId}/cancel`, {
         method: 'POST',
-        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
         keepalive: true // Important: keeps request alive even if page is closing
       }).catch(error => {
         console.warn('Failed to cancel booking on unmount:', error);
@@ -156,16 +164,18 @@ const PaymentForm = () => {
        return;
      }
     setProcessing(true); // Set processing state to true
-  };
-
-  // Handle cancellation button click
+  };  // Handle cancellation button click
   const handleCancel = async () => {
       if (!bookingId) return;
       
       try {
+        const token = localStorage.getItem('authToken');
         const response = await fetch(`${config.apiUrl}/api/bookings/${bookingId}/cancel`, { 
           method: 'POST', 
-          credentials: 'include' 
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` })
+          }
         });
         
         const data = await response.json();

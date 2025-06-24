@@ -33,11 +33,18 @@ const BookingDetails = () => {
     const fetchBookingDetails = async () => {
       try {
         setIsLoading(true);
+        const token = localStorage.getItem('authToken');
         const response = await fetch(`${config.apiUrl}/api/bookings/${bookingId}`, {
-        credentials: 'include', // Include if auth is needed to view booking
-      });
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` })
+          },
+        });
         
         if (!response.ok) {
+          if (response.status === 401) {
+            throw new Error('Authentication required. Please log in again.');
+          }
           throw new Error('Failed to fetch booking details');
         }
         
