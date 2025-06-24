@@ -46,10 +46,17 @@ const BookingConfirmation = () => {
 
     // Function to get response from backend and check booking status
     const getBookingDetails = async (id: string) => {
+      const token = localStorage.getItem('authToken');
       const response = await fetch(`${config.apiUrl}/api/bookings/${id}`, {
-        credentials: 'include', // Include if auth is needed to view booking
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
       });
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication required. Please log in again.');
+        }
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to fetch booking details.');
       }
@@ -108,8 +115,12 @@ const BookingConfirmation = () => {
     
     setIsDownloading(true);
     try {
+      const token = localStorage.getItem('authToken');
       const response = await fetch(`${config.apiUrl}/api/bookings/${bookingId}/receipt`, {
-        credentials: 'include' // Include cookies for authentication
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
       });
       
       if (!response.ok) {

@@ -2,6 +2,7 @@ import express from 'express';
 import { Booking } from '../models.js';
 import { wrapAsync } from '../utils/error-utils.js';
 import { formatBooking } from '../utils/booking-utils.js';
+import { authenticateToken, requireAdmin } from '../utils/jwt-utils.js';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 
@@ -77,7 +78,7 @@ async function createSlot({ date, startTime, endTime, price }) {
 
 
 // deletes event (time slot) in database
-router.delete('/:id', wrapAsync(async (req, res) => {
+router.delete('/:id', authenticateToken, requireAdmin, wrapAsync(async (req, res) => {
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -98,7 +99,7 @@ router.delete('/:id', wrapAsync(async (req, res) => {
 
 }));
 
-router.post('/', isValidBooking, wrapAsync(async (req, res) => { // Removed isAdminUser for now if not implemented
+router.post('/', authenticateToken, requireAdmin, isValidBooking, wrapAsync(async (req, res) => { // Added admin authentication
     const { date, startTime, endTime, price } = req.body;
 
     // Add validation for price
