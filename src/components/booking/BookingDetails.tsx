@@ -22,6 +22,20 @@ interface BookingDetailsData {
   createdAt: string;
 }
 
+// Helper function to safely parse createdAt timestamp
+const parseCreatedAtDate = (createdAt: string): Date => {
+  // Check if the string is a numeric Unix timestamp (only digits)
+  const unixTimestampRegex = /^\d+$/;
+  
+  if (unixTimestampRegex.test(createdAt)) {
+    // Parse as Unix timestamp (multiply by 1000 to convert to milliseconds)
+    return new Date(parseInt(createdAt) * 1000);
+  } else {
+    // Treat as ISO string or other standard date format
+    return new Date(createdAt);
+  }
+};
+
 const BookingDetails = () => {
   const { bookingId } = useParams<{ bookingId: string }>();
   const navigate = useNavigate();
@@ -76,9 +90,9 @@ const BookingDetails = () => {
         <Card className="w-full max-w-md">
           <CardContent className="p-6 text-center">
             <div className="text-red-500 mb-4">Error: {error}</div>
-            <Button onClick={() => navigate('/admin')}>
+            <Button onClick={() => navigate('/dashboard')}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Admin Panel
+              Back to Dashboard
             </Button>
           </CardContent>
         </Card>
@@ -108,11 +122,11 @@ const BookingDetails = () => {
       <div className="flex items-center mb-6">
         <Button 
           variant="ghost" 
-          onClick={() => navigate('/admin')}
+          onClick={() => navigate('/dashboard')}
           className="mr-4"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Admin Panel
+          Back to Dashboard
         </Button>
         <h1 className="text-2xl font-bold text-booking-primary">Booking Details</h1>
       </div>
@@ -197,14 +211,7 @@ const BookingDetails = () => {
                 <div>
                   <span className="font-medium">Created At:</span>
                   <span className="ml-2 text-gray-600">
-                    {format(
-                        new Date(
-                          typeof booking.createdAt === 'string' && booking.createdAt.length <= 10 
-                            ? parseInt(booking.createdAt) * 1000 
-                            : booking.createdAt
-                        ), 
-                        'MMM d, yyyy at h:mm a'
-          )}
+                    {format(parseCreatedAtDate(booking.createdAt), 'MMM d, yyyy at h:mm a')}
                   </span>
                 </div>
               </div>

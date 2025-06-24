@@ -26,6 +26,8 @@ import ResendVerification from "./components/auth/ResendVerification";
 // Booking Components
 import BookingCalendar from "./components/booking/BookingCalendar";
 import UserBookings from "./components/booking/UserBookings";
+import BookingDetails from "./components/booking/BookingDetails";
+import BookingDetailsAdmin from "./components/booking/BookingDetailsAdmin";
 
 // Admin Components
 import AdminPanel from "./components/admin/AdminPanel";
@@ -33,7 +35,6 @@ import AdminPanel from "./components/admin/AdminPanel";
 // Payment Components
 import PaymentForm from "./components/payment/PaymentForm";
 import BookingConfirmation from "./components/payment/BookingConfirmation";
-import BookingDetails from "./components/booking/BookingDetails";
 import { Book } from "lucide-react";
 import ApiHealthCheck from "./components/debug/ApiHealthCheck";
 
@@ -92,6 +93,10 @@ const App = () => (
               <Route 
                 path="/admin" 
                 element={<PrivateRoute element={<Layout><AdminPanel /></Layout>} adminOnly={true} />} 
+              />
+              <Route 
+                path="/admin/booking/:bookingId" 
+                element={<PrivateRoute element={<Layout><BookingDetailsAdmin /></Layout>} adminOnly={true} />} 
               />
               
               

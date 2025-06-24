@@ -155,7 +155,7 @@ const AdminPanel = () => {
                       <div 
                         key={slot.id} 
                         className={`booking-card relative ${slot.isBooked ? 'opacity-75 cursor-pointer hover:opacity-90 transition-opacity' : ''}`}
-                        onClick={slot.isBooked ? () => navigate(`/booking/${slot.id}`) : undefined}
+                        onClick={slot.isBooked ? () => navigate(`/admin/booking/${slot.id}`) : undefined}
                       >
                         <div className="flex justify-between items-center mb-2">
                           <span className="text-sm text-gray-500">
