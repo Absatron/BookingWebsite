@@ -23,13 +23,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // maintain consistency with backend session
       const validateSession = async () => {
       try {
+        console.log('🔍 Frontend: Validating session with backend...');
+        console.log('   API URL:', `${config.apiUrl}/api/user/validate-session`);
+        console.log('   Document cookies:', document.cookie);
+        
         const response = await fetch(`${config.apiUrl}/api/user/validate-session`, {
           method: 'GET',
           credentials: 'include',
         });
 
+        console.log('🔍 Frontend: Session validation response:', response.status);
+
         if (response.ok) {
           const data = await response.json();
+          console.log('✅ Frontend: Session valid, user data:', data);
           const user: User = {
             id: data.userId,
             email: data.email,
@@ -40,11 +47,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           localStorage.setItem('currentUser', JSON.stringify(user));
         } else {
           // Session is invalid, clear localStorage
+          console.log('❌ Frontend: Session invalid, clearing user data');
           setCurrentUser(null);
           localStorage.removeItem('currentUser');
         }
       } catch (error) {
-        console.error('Session validation error:', error);
+        console.error('❌ Frontend: Session validation error:', error);
         setCurrentUser(null);
         localStorage.removeItem('currentUser');
       } finally {
@@ -69,6 +77,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       setLoading(true);
       
+      console.log('🔑 Frontend: Attempting login...');
+      console.log('   API URL:', `${config.apiUrl}/api/user/login`);
+      console.log('   Credentials: include');
+      
       const response = await fetch(`${config.apiUrl}/api/user/login`, {
         method: 'POST',
         headers: {
@@ -79,6 +91,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
 
       const data = await response.json();
+      
+      console.log('🔑 Frontend: Login response status:', response.status);
+      console.log('🔑 Frontend: Login response data:', data);
 
       if (!response.ok) {
         // Check if it's an email not verified error
@@ -113,12 +128,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setCurrentUser(user);
       localStorage.setItem('currentUser', JSON.stringify(user));
       
+      console.log('✅ Frontend: Login successful, user set:', user);
+      console.log('🍪 Frontend: Document cookies after login:', document.cookie);
+      
       toast({
         title: "Login successful",
         description: `Welcome back!`,
       });
       return true;
     } catch (error) {
+      console.error('❌ Frontend: Login error:', error);
       toast({
         title: "Error",
         description: "An error occurred during login",

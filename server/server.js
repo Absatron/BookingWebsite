@@ -92,6 +92,7 @@ const sessionOptions = {
     secret: process.env.SESSION_SECRET, // Use environment variable
     resave: false, 
     saveUninitialized: false,
+    name: 'sessionId', // Custom cookie name for better tracking
     store: MongoStore.create({
         mongoUrl: mongoUri,
         touchAfter: 24 * 3600 // lazy session update
@@ -100,7 +101,9 @@ const sessionOptions = {
         maxAge: 24 * 60 * 60 * 1000, // 24 hours for production
         httpOnly: true, // Enable for security
         secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax' // Allow cross-site cookies in production
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Allow cross-site cookies in production
+        // Let browser handle domain automatically for cross-origin
+        domain: undefined
     } 
 };
 
@@ -132,6 +135,7 @@ app.use(compression());
 const allowedOrigins = [
     'http://localhost:8080',  // Local development
     'https://bookingapp-gamma-orcin.vercel.app',  // Production Vercel
+    "https://bookingapp-git-main-absatrons-projects.vercel.app" ,// Development Vercel
     'https://bookingapp-m8mns1097-absatrons-projects.vercel.app',  // Old Vercel URL
     process.env.CLIENT_URL  // Environment variable override
 ].filter(Boolean); // Remove any undefined values
@@ -162,7 +166,35 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }));
 
-app.use(express.static("dist"));
+// Add middleware to set additional headers for cookie debugging
+app.use((req, res, next) => {
+    // Add headers to help with cookie debugging
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
+    // Handle preflight OPTIONS requests
+    if (req.method === 'OPTIONS') {
+        res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE');
+        res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+        res.header('Access-Control-Max-Age', '86400'); // 24 hours
+        return res.status(200).end();
+    }
+    
+    // Log environment and cookie settings for debugging
+    if (req.url.includes('/api/user/')) {
+        console.log('🔧 Session Config Debug:');
+        console.log('   NODE_ENV:', process.env.NODE_ENV);
+        console.log('   Cookie secure:', process.env.NODE_ENV === 'production');
+        console.log('   Cookie sameSite:', process.env.NODE_ENV === 'production' ? 'none' : 'lax');
+        console.log('   Trust proxy:', app.get('trust proxy'));
+        console.log('   Request method:', req.method);
+        console.log('   Session cookie name: sessionId');
+    }
+    
+    next();
+});
+
+// Serve static files from the "dist" directory - used if deploying frontednd and backend on the same server
+//app.use(express.static("dist"));
 
 // Mount payment router BEFORE global JSON parsing for webhook handling
 app.use('/api/payment', paymentRouter);
@@ -170,6 +202,21 @@ app.use('/api/payment', paymentRouter);
 // Global middleware (applied after payment router)
 app.use(express.json());
 app.use(session(sessionOptions));
+
+// Add debugging middleware for cookies and sessions
+app.use((req, res, next) => {
+    console.log('🍪 Cookie & Session Debug:');
+    console.log('   Request cookies:', req.headers.cookie);
+    console.log('   Session ID:', req.sessionID);
+    console.log('   Session exists:', !!req.session);
+    console.log('   User ID in session:', req.session?.user_id);
+    console.log('   Admin in session:', req.session?.admin);
+    console.log('   Session object:', JSON.stringify(req.session, null, 2));
+    console.log('   Origin:', req.headers.origin);
+    console.log('   User-Agent:', req.headers['user-agent']);
+    console.log('   Referer:', req.headers.referer);
+    next();
+});
 
 // Other routers
 app.use('/api/events', eventsRouter);

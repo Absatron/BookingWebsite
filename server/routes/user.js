@@ -160,7 +160,7 @@ router.post('/logout', (req, res) => {
         console.error('Session destroy error:', err);
         return res.status(500).json({ message: 'Logout failed' });
       }
-      res.clearCookie('connect.sid'); // Optional: explicitly clear session cookie
+      res.clearCookie('sessionId'); // Clear the custom cookie name
       return res.json({ message: 'User was successfully logged out' });
     });
   });
