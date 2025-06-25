@@ -293,7 +293,11 @@ const Dashboard = () => {
                   })
                   .slice(0, 3)
                   .map((booking) => (
-                  <div key={booking.id} className="flex items-center p-3 rounded-md border hover:bg-gray-50 transition-colors">
+                  <div 
+                    key={booking.id} 
+                    className="flex items-center p-3 rounded-md border hover:bg-gray-50 cursor-pointer transition-colors"
+                    onClick={() => navigate(`/booking/${booking.id}`)}
+                  >
                     <div className="bg-booking-accent p-2 rounded-full mr-3">
                       <Calendar className="h-4 w-4 text-booking-primary" />
                     </div>

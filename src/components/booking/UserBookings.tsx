@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'; // Added useState, useEffect
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 import { format, parseISO, compareAsc } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +11,7 @@ import { Booking } from '@/types'; // Import the Booking type
 const UserBookings = () => {
   const { getUserBookings } = useBooking();
   const { currentUser, loading } = useAuth();
+  const navigate = useNavigate(); // Add navigate hook
   const [userBookings, setUserBookings] = useState<Booking[]>([]); // Added state for bookings
   const [isLoading, setIsLoading] = useState<boolean>(true); // Added loading state
   const [error, setError] = useState<string | null>(null); // Added error state
@@ -112,7 +114,11 @@ const UserBookings = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {userBookings.map((booking) => (
-            <Card key={booking.id} className="animate-fade-in">
+            <Card 
+              key={booking.id} 
+              className="animate-fade-in cursor-pointer hover:shadow-md transition-all duration-200"
+              onClick={() => navigate(`/booking/${booking.id}`)}
+            >
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
                   <div>
