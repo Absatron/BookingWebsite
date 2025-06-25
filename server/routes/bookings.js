@@ -144,6 +144,26 @@ router.get('/:bookingId', authenticateToken, wrapAsync(async (req, res) => {
 
 // Add other booking-related routes here (e.g., confirm payment, get user bookings)
 
+// Get all confirmed bookings (admin only)
+router.get('/admin/all', authenticateToken, wrapAsync(async (req, res) => {
+    const userId = req.user.userId;
+    const isAdmin = req.user.isAdmin;
+
+    // Check if user is admin
+    if (!isAdmin) {
+        return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
+    }
+
+    // Fetch all confirmed bookings with user details
+    const bookings = await Booking.find({ status: 'confirmed' })
+        .populate('bookedBy', 'name email')
+        .sort({ date: 1, startTime: 1 }); // Sort by date and time
+    
+    console.log("Admin requested all confirmed bookings. Found:", bookings.length);
+
+    return res.status(200).json(bookings);
+}));
+
 // Get user bookings
 router.get('/', authenticateToken, wrapAsync(async (req, res) => {
     const userId = req.user.userId;

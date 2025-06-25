@@ -23,4 +23,7 @@ export type Booking = {
   paymentStatus: 'pending' | 'completed' | 'failed';
   createdAt: string;
   slot: TimeSlot;
+  // Optional customer details for admin view
+  customerName?: string;
+  customerEmail?: string;
 };

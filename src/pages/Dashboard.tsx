@@ -10,7 +10,7 @@ import { Booking, TimeSlot } from '@/types'; // Import Booking type
 
 const Dashboard = () => {
   const { currentUser, loading } = useAuth();
-  const { timeSlots, getUserBookings } = useBooking();
+  const { timeSlots, getUserBookings, getAllAdminBookings } = useBooking();
   const navigate = useNavigate();
   const [userBookings, setUserBookings] = useState<Booking[]>([]); // State for bookings
   const [isLoading, setIsLoading] = useState<boolean>(true); // Loading state
@@ -32,7 +32,10 @@ const Dashboard = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const bookingsData = await getUserBookings();
+        // Use different fetch logic for admin users
+        const bookingsData = currentUser.isAdmin 
+          ? await getAllAdminBookings() 
+          : await getUserBookings();
         setUserBookings(bookingsData);
       } catch (err) {
         console.error("Failed to fetch user bookings for dashboard:", err);
@@ -45,7 +48,7 @@ const Dashboard = () => {
 
     console.log("Fetching bookings for user:", currentUser?.email);
     fetchBookings();
-  }, [currentUser, loading, getUserBookings, navigate]);  
+  }, [currentUser, loading, getUserBookings, getAllAdminBookings, navigate]);  
 
   // Show loading state while fetching user or bookings
   if (loading || (isLoading && currentUser) ){
@@ -101,13 +104,13 @@ const Dashboard = () => {
     return slotDateTime > new Date();
   };
 
-  // Filter for future bookings only
-  const futureBookings = userBookings.filter(isFutureBooking);
+  // Filter for future bookings only (for regular users) or all confirmed bookings (for admin)
+  const futureBookings = userBookings.filter(isFutureBooking); // Users see only future bookings
 
-  // Calculate stats using only future bookings
+  // Calculate stats using filtered bookings
   const upcomingBookingsCount = futureBookings.length;
 
-  // Get next booking using only future bookings
+  // Get next booking using filtered bookings
   const nextBooking = futureBookings
     .filter(booking => booking.paymentStatus === 'completed')
     .sort((a, b) => {
@@ -141,15 +144,21 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">My Bookings</CardTitle>
-            <CardDescription>Your upcoming appointments</CardDescription>
+            <CardTitle className="text-lg">
+              {currentUser.isAdmin ? 'All Bookings' : 'My Bookings'}
+            </CardTitle>
+            <CardDescription>
+              {currentUser.isAdmin ? 'Total confirmed appointments' : 'Your upcoming appointments'}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center">
               <Calendar className="h-8 w-8 text-booking-primary mr-4" />
               <div>
                 <p className="text-3xl font-bold">{upcomingBookingsCount}</p> {/* Use count from future bookings */}
-                <p className="text-sm text-gray-500">Upcoming bookings</p>
+                <p className="text-sm text-gray-500">
+                  {currentUser.isAdmin ? 'Confirmed bookings' : 'Upcoming bookings'}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -216,13 +225,17 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <Card>
           <CardHeader>
-            <CardTitle>Next Appointment</CardTitle>
-            <CardDescription>Your upcoming scheduled booking</CardDescription>
+            <CardTitle>
+              {currentUser.isAdmin ? 'Next Appointment' : 'Next Appointment'}
+            </CardTitle>
+            <CardDescription>
+              {currentUser.isAdmin ? 'Next confirmed appointment in the system' : 'Your upcoming scheduled booking'}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {nextBooking ? (
               <div className="space-y-4">
-                {/* ... Next booking details - use parseISO for date ... */}
+                {/* ...existing booking details... */}
                  <div className="flex items-center">
                   <div className="bg-booking-accent p-2 rounded-full mr-3">
                     <Calendar className="h-5 w-5 text-booking-primary" />
@@ -246,8 +259,22 @@ const Dashboard = () => {
                   </div>
                 </div>
 
+                {/* Show customer details for admin */}
+                {currentUser.isAdmin && nextBooking.customerName && (
+                  <div className="flex items-center">
+                    <div className="bg-booking-accent p-2 rounded-full mr-3">
+                      <User className="h-5 w-5 text-booking-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Customer</p>
+                      <p className="font-medium">{nextBooking.customerName}</p>
+                      <p className="text-xs text-gray-400">{nextBooking.customerEmail}</p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="pt-2">
-                  <Link to={`/booking/${nextBooking.id}`}>
+                  <Link to={currentUser.isAdmin ? `/admin/booking/${nextBooking.id}` : `/booking/${nextBooking.id}`}>
                     <Button variant="link" className="p-0 h-auto text-booking-primary flex items-center">
                       <span>View appointment details</span>
                       <ArrowRight className="ml-1 h-4 w-4" />
@@ -256,15 +283,19 @@ const Dashboard = () => {
                 </div>
               </div>
             ) : (
-              // ... No upcoming appointments content remains the same ...
+              // ...existing no appointments content...
                <div className="text-center py-8">
                 <Clock className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500 mb-4">You don't have any upcoming appointments</p>
-                <Link to="/booking">
-                  <Button className="bg-booking-primary hover:bg-opacity-90">
-                    Book Now
-                  </Button>
-                </Link>
+                <p className="text-gray-500 mb-4">
+                  {currentUser.isAdmin ? 'No upcoming appointments in the system' : "You don't have any upcoming appointments"}
+                </p>
+                {!currentUser.isAdmin && (
+                  <Link to="/booking">
+                    <Button className="bg-booking-primary hover:bg-opacity-90">
+                      Book Now
+                    </Button>
+                  </Link>
+                )}
               </div>
             )}
           </CardContent>
@@ -273,10 +304,14 @@ const Dashboard = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle>Recent Bookings</CardTitle>
-              <CardDescription>Your latest appointments</CardDescription>
+              <CardTitle>
+                {currentUser.isAdmin ? 'Recent Bookings' : 'Recent Bookings'}
+              </CardTitle>
+              <CardDescription>
+                {currentUser.isAdmin ? 'Latest appointments in the system' : 'Your latest appointments'}
+              </CardDescription>
             </div>
-            <Link to="/my-bookings">
+            <Link to={currentUser.isAdmin ? "/admin/bookings" : "/my-bookings"}>
               <Button variant="ghost" className="text-sm">View all</Button>
             </Link>
           </CardHeader>
@@ -296,7 +331,7 @@ const Dashboard = () => {
                   <div 
                     key={booking.id} 
                     className="flex items-center p-3 rounded-md border hover:bg-gray-50 cursor-pointer transition-colors"
-                    onClick={() => navigate(`/booking/${booking.id}`)}
+                    onClick={() => navigate(currentUser.isAdmin ? `/admin/booking/${booking.id}` : `/booking/${booking.id}`)}
                   >
                     <div className="bg-booking-accent p-2 rounded-full mr-3">
                       <Calendar className="h-4 w-4 text-booking-primary" />
@@ -309,6 +344,12 @@ const Dashboard = () => {
                       <p className="text-sm text-gray-500">
                         {booking.slot.startTime} - {booking.slot.endTime}
                       </p>
+                      {/* Show customer name for admin */}
+                      {currentUser.isAdmin && booking.customerName && (
+                        <p className="text-xs text-gray-400">
+                          {booking.customerName}
+                        </p>
+                      )}
                     </div>
                     <div className={`text-xs py-1 px-2 rounded-full ${
                       booking.paymentStatus === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
@@ -322,7 +363,9 @@ const Dashboard = () => {
               // No booking history message
               <div className="text-center py-8">
                 <List className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500">No booking history yet</p>
+                <p className="text-gray-500">
+                  {currentUser.isAdmin ? 'No confirmed bookings in the system yet' : 'No booking history yet'}
+                </p>
               </div>
             )}
           </CardContent>

@@ -28,6 +28,7 @@ import BookingCalendar from "./components/booking/BookingCalendar";
 import UserBookings from "./components/booking/UserBookings";
 import BookingDetails from "./components/booking/BookingDetails";
 import BookingDetailsAdmin from "./components/booking/BookingDetailsAdmin";
+import AdminUserBookings from "./components/booking/AdminUserBookings";
 
 // Admin Components
 import AdminPanel from "./components/admin/AdminPanel";
@@ -97,6 +98,10 @@ const App = () => (
               <Route 
                 path="/admin/booking/:bookingId" 
                 element={<PrivateRoute element={<Layout><BookingDetailsAdmin /></Layout>} adminOnly={true} />} 
+              />
+              <Route 
+                path="/admin/bookings" 
+                element={<PrivateRoute element={<Layout><AdminUserBookings /></Layout>} adminOnly={true} />} 
               />
               
               

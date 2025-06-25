@@ -29,6 +29,7 @@ type BookingContextType = {
   getSlotById: (id: string) => TimeSlot | undefined;
   fetchTimeSlots: () => Promise<void>;
   getUserBookings: () => Promise<Booking[]>; // Changed from getUserBookings
+  getAllAdminBookings: () => Promise<Booking[]>; // New admin function
 };
 
 const BookingContext = createContext<BookingContextType | undefined>(undefined);
@@ -298,7 +299,97 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     } finally {
       setIsLoading(false);
     }
-  }, [currentUser, toast]);
+  }, [currentUser, toast, handleSessionExpired]);
+
+  // Function to fetch all confirmed bookings for admin users
+  const getAllAdminBookings = useCallback(async (): Promise<Booking[]> => {
+    if (!currentUser || !currentUser.isAdmin) {
+      toast({
+        title: "Access Denied",
+        description: "Admin privileges required to view all bookings.",
+        variant: "destructive",
+      });
+      return [];
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${config.apiUrl}/api/bookings/admin/all`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          handleSessionExpired()
+          throw new Error('Authentication required. Please log in again.');
+        }
+        if (response.status === 403) {
+          throw new Error('Access denied. Admin privileges required.');
+        }
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to fetch admin bookings');
+      }
+
+      const rawBookings = await response.json();
+
+      // Parse raw data into the frontend Booking type
+      const parsedBookings: Booking[] = rawBookings.map(rawBooking => {
+        // Map backend status ('confirmed', 'pending') to frontend paymentStatus
+        let paymentStatus: 'pending' | 'completed' | 'failed';
+        switch (rawBooking.status) {
+          case 'confirmed':
+            paymentStatus = 'completed';
+            break;
+          case 'pending':
+            paymentStatus = 'pending';
+            break;
+          default:
+            console.warn(`Unexpected booking status: ${rawBooking.status} for booking ${rawBooking._id}`);
+            paymentStatus = 'failed';
+        }
+
+        // Safely handle populated bookedBy field
+        const bookedByUser = rawBooking.bookedBy;
+        const userId = bookedByUser?._id || bookedByUser || 'unknown';
+        const customerName = bookedByUser?.name || 'Unknown';
+        const customerEmail = bookedByUser?.email || 'Unknown';
+
+        return {
+          id: rawBooking._id,
+          userId: userId,
+          slotId: rawBooking._id,
+          paymentStatus: paymentStatus,
+          createdAt: rawBooking.createdAt || '2024-01-01T12:00:00.000Z',
+          slot: {
+            id: rawBooking._id,
+            date: format(new Date(rawBooking.date), 'yyyy-MM-dd'),
+            startTime: rawBooking.startTime,
+            endTime: rawBooking.endTime,
+            isBooked: true,
+            price: rawBooking.price,
+            bookedBy: userId,
+          },
+          // Add customer details for admin view
+          customerName: customerName,
+          customerEmail: customerEmail,
+        };
+      });
+
+      return parsedBookings;
+
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "An unexpected error occurred while fetching admin bookings.";
+      toast({
+        title: "Error Fetching Admin Bookings",
+        description: errorMsg,
+        variant: "destructive",
+      });
+      return [];
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentUser, toast, handleSessionExpired]);
 
 
   const value = {
@@ -311,6 +402,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     createBooking,
     getSlotById,
     getUserBookings, // Expose the updated function
+    getAllAdminBookings, // Expose the new admin function
     fetchTimeSlots,
   };
 
