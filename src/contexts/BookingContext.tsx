@@ -15,7 +15,7 @@ interface BackendEventData {
   status: 'available' | 'pending' | 'completed' | 'cancelled';
   bookedBy?: string | null; // Optional, might be null or ObjectId string
   stripePriceId: string;
-  // Add any other fields returned by the /api/events endpoint
+  // Add any other fields returned by the /api/bookings endpoint
 }
 
 type BookingContextType = {
@@ -25,7 +25,7 @@ type BookingContextType = {
   addTimeSlot: (date: Date, startTime: string, endTime: string, price: number) => Promise<boolean>;
   deleteTimeSlot: (id: string) => Promise<boolean>;
   selectSlot: (slot: TimeSlot) => void;
-  createBooking: (slotId: string) => Promise<{ bookingId: string; stripePriceId: string } | null>;
+  createBooking: (bookingId: string) => Promise<{ bookingId: string; stripePriceId: string } | null>;
   getSlotById: (id: string) => TimeSlot | undefined;
   fetchTimeSlots: () => Promise<void>;
   getUserBookings: () => Promise<Booking[]>; // Changed from getUserBookings
@@ -54,16 +54,16 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
   const fetchTimeSlots = useCallback(async () => {
     setIsFetchingSlots(true);
     try {
-      const response = await fetch(`${config.apiUrl}/api/events`);
+      const response = await fetch(`${config.apiUrl}/api/bookings`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to fetch time slots');
       }
-      // Assuming the backend returns { events: BackendEventData[] }
-      const data: { events: BackendEventData[] } = await response.json();
+      // Assuming the backend returns { bookings: BackendEventData[] }
+      const data: { bookings: BackendEventData[] } = await response.json();
 
       // Use the specific BackendEventData type here
-      const fetchedSlots: TimeSlot[] = data.events.map((event: BackendEventData) => ({
+      const fetchedSlots: TimeSlot[] = data.bookings.map((event: BackendEventData) => ({
         id: event.id,
         // Parse date string correctly, assuming backend sends YYYY-MM-DD or ISO
         // format() expects a Date object, so parse first if needed
@@ -101,7 +101,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     setIsLoading(true);
     try {
       const formattedDate = format(date, 'yyyy-MM-dd');
-      const response = await fetch(`${config.apiUrl}/api/events`, {
+      const response = await fetch(`${config.apiUrl}/api/bookings`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ date: formattedDate, startTime, endTime, price }),
@@ -137,7 +137,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
   const deleteTimeSlot = async (id: string): Promise<boolean> => {
     try {
       setIsLoading(true);
-      const response = await fetch(`${config.apiUrl}/api/events/${id}`, {
+      const response = await fetch(`${config.apiUrl}/api/bookings/${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
       });
@@ -176,14 +176,14 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     return timeSlots.find(slot => slot.id === id);
   };
 
-  const createBooking = useCallback(async (slotId: string): Promise<{ bookingId: string; stripePriceId: string } | null> => {
+  const createBooking = useCallback(async (bookingId: string): Promise<{ bookingId: string; stripePriceId: string } | null> => {
 
     setIsLoading(true);
     try {
       const response = await fetch(`${config.apiUrl}/api/bookings/initiate`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ slotId }),
+        body: JSON.stringify({ bookingId }),
       });
 
       const data = await response.json();
@@ -233,7 +233,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     setIsLoading(true);
     try {
-      const response = await fetch(`${config.apiUrl}/api/bookings`, {
+      const response = await fetch(`${config.apiUrl}/api/bookings/user`, {
         method: 'GET',
         headers: getAuthHeaders(),
       });
@@ -269,7 +269,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
         return {
           id: rawBooking._id, // Use backend booking ID
           userId: rawBooking.bookedBy, // Assuming backend returns the ID string
-          slotId: rawBooking._id, // Using the booking ID as the slotId based on current type
+          bookingId: rawBooking._id, // Using the booking ID as the bookingId
           paymentStatus: paymentStatus,
           createdAt: '2024-01-01T12:00:00.000Z', // Hardcoded date for now
           slot: { // Construct the nested slot object from booking details
@@ -314,7 +314,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     setIsLoading(true);
     try {
-      const response = await fetch(`${config.apiUrl}/api/bookings/admin/all`, {
+      const response = await fetch(`${config.apiUrl}/api/bookings/confirmed`, {
         method: 'GET',
         headers: getAuthHeaders(),
       });
@@ -358,7 +358,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
         return {
           id: rawBooking._id,
           userId: userId,
-          slotId: rawBooking._id,
+          bookingId: rawBooking._id,
           paymentStatus: paymentStatus,
           createdAt: rawBooking.createdAt || '2024-01-01T12:00:00.000Z',
           slot: {

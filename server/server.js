@@ -1,18 +1,20 @@
+// imports are loaded before file runs, so need to be repeated for files which use env variables at module level
+import dotenv from 'dotenv';
+dotenv.config()
+
 import express from 'express';
 import morgan from 'morgan';
 import mongoose from 'mongoose';
-import eventsRouter from './routes/events.js';
-import paymentRouter from './routes/payment.js';
-import userRouter from './routes/user.js';
-import bookingsRouter from './routes/bookings.js'; 
-import dotenv from 'dotenv';
-import cors from 'cors';
-import { testEmailConfiguration } from './utils/email-service.js';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import compression from 'compression';
+import cors from 'cors';
 
-dotenv.config();
+import paymentRouter from './routes/payment.js';
+import userRouter from './routes/user.js';
+import bookingsRouter from './routes/bookings.js'; 
+
+import { testEmailConfiguration } from './utils/email-service.js';
 
 const app = express();
 
@@ -115,7 +117,6 @@ const allowedOrigins = [
     'http://localhost:8080',  // Local development
     'https://bookingapp-gamma-orcin.vercel.app',  // Production Vercel
     "https://bookingapp-git-main-absatrons-projects.vercel.app" ,// Development Vercel
-    'https://bookingapp-m8mns1097-absatrons-projects.vercel.app',  // Old Vercel URL
     process.env.CLIENT_URL  // Environment variable override
 ].filter(Boolean); // Remove any undefined values
 
@@ -176,11 +177,10 @@ app.use((req, res, next) => {
 // Mount payment router BEFORE global JSON parsing for webhook handling
 app.use('/api/payment', paymentRouter);
 
-// Global middleware (applied after payment router)
+// Parse JSON bodies for all routes
 app.use(express.json());
 
 // Other routers
-app.use('/api/events', eventsRouter);
 app.use('/api/user', userRouter);
 app.use('/api/bookings', bookingsRouter); 
 
@@ -193,9 +193,8 @@ app.get('/health', (req, res) => {
     });
 });
 
-// dev
+// Logging middleware
 app.use(morgan('common'));
-//
 
 // undefined routes
 app.use((req, res) => {
@@ -204,7 +203,6 @@ app.use((req, res) => {
 
 // error handling
 app.use((err, req, res, next) => {
-    
     console.log("Error handled")
     console.log(err)
     const { status = 500, message = 'Something went wrong' } = err;

@@ -19,7 +19,7 @@ export type TimeSlot = {
 export type Booking = {
   id: string;
   userId: string;
-  slotId: string;
+  bookingId: string;
   paymentStatus: 'pending' | 'completed' | 'failed';
   createdAt: string;
   slot: TimeSlot;

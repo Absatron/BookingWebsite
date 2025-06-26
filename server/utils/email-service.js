@@ -1,10 +1,13 @@
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
+import dotenv from 'dotenv';
+
+dotenv.config()
 
 // Create transporter for sending emails
 const transporter = nodemailer.createTransport({
-    // Configure your email service (Gmail, SendGrid, etc.)
-    service: 'gmail', // You can change this to your preferred email service
+    // Configure an email service (Gmail)
+    service: 'gmail',
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS

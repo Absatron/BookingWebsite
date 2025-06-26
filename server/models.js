@@ -1,9 +1,7 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
-import cron from 'node-cron';
-import { isBefore, format } from 'date-fns';
-import Joi from 'joi';
-const { required } = Joi;
+import dotenv from 'dotenv';
+dotenv.config()
 
 const userSchema = new mongoose.Schema({
     name: {
@@ -100,22 +98,3 @@ const bookingSchema = new mongoose.Schema({
 })
 
 export const Booking = mongoose.model('Booking', bookingSchema);
-
-// Function to delete old events
-async function deleteOldBookings() {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - 30); // Delete events older than 30 days
-
-    try {
-        const result = await Booking.deleteMany({ date: { $lt: cutoffDate } });
-        console.log(`Deleted ${result.deletedCount} old events`);
-    } catch (error) {
-        console.error('Error deleting old events:', error);
-    }
-}
-
-// Schedule the task to run daily at midnight
-cron.schedule('0 0 * * *', () => {
-    console.log('Running automated event deletion');
-    deleteOldBookings();
-});
