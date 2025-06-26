@@ -49,17 +49,7 @@ async function connectToDatabase() {
         }
 
         await mongoose.connect(mongoUri, mongoOptions);
-        console.log("✅ CONNECTED TO DATABASE");
-        
-        // Test email configuration on startup
-        testEmailConfiguration().then(result => {
-            if (result.success) {
-                console.log("✅ Email service configuration verified");
-            } else {
-                console.warn("⚠️  Email service not configured or has issues:", result.message);
-                console.warn("   Booking confirmations will not be sent via email");
-            }
-        });
+        console.log("✅ CONNECTED TO DATABASE");       
         
     } catch (error) {
         console.error("❌ MongoDB connection error:");
@@ -88,6 +78,16 @@ async function connectToDatabase() {
 // Connect to database
 connectToDatabase();
 
+// Test email configuration
+testEmailConfiguration().then(result => {
+    if (result.success) {
+        console.log("✅ Email service configuration verified");
+    } else {
+        console.warn("⚠️  Email service not configured or has issues:", result.message);
+        console.warn("   Booking confirmations will not be sent via email");
+    }
+});
+
 // Add security headers
 app.use(helmet({
     contentSecurityPolicy: {
@@ -107,6 +107,7 @@ const limiter = rateLimit({
     message: 'Too many requests from this IP, please try again later.',
 });
 
+// Apply rate limiting to all API routes
 app.use('/api/', limiter);
 
 // Add compression
@@ -114,9 +115,7 @@ app.use(compression());
 
 // Configure CORS
 const allowedOrigins = [
-    'http://localhost:8080',  // Local development
     'https://bookingapp-gamma-orcin.vercel.app',  // Production Vercel
-    "https://bookingapp-git-main-absatrons-projects.vercel.app" ,// Development Vercel
     process.env.CLIENT_URL  // Environment variable override
 ].filter(Boolean); // Remove any undefined values
 
@@ -174,7 +173,7 @@ app.use((req, res, next) => {
 // Serve static files from the "dist" directory - used if deploying frontednd and backend on the same server
 //app.use(express.static("dist"));
 
-// Mount payment router BEFORE global JSON parsing for webhook handling
+// Mount payment router before global JSON parsing
 app.use('/api/payment', paymentRouter);
 
 // Parse JSON bodies for all routes

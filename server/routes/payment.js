@@ -1,9 +1,8 @@
 import express from 'express';
-import { wrapAsync } from '../utils/error-utils.js';
 import dotenv from 'dotenv';
 import Stripe from 'stripe';
-import { Booking } from '../models.js';
-import { sendBookingConfirmationEmail } from '../utils/email-service.js';
+import { wrapAsync } from '../utils/error-utils.js';
+import { confirmBooking, cancelBooking } from '../utils/payment-utils.js';
 
 dotenv.config();
 
@@ -15,11 +14,12 @@ const router = express.Router();
 // Middleware specifically for parsing URL-encoded bodies for this route
 const urlencodedParser = express.urlencoded({ extended: true });
 
-
 router.post('/create-checkout-session', urlencodedParser, wrapAsync(async (req, res) => {
-    const { bookingId, stripePriceId, bookingPrice } = req.body; // Get data from form
-    console.log("Received booking data:", req.body);
+    
+    const { bookingId, stripePriceId, bookingPrice } = req.body; 
 
+    console.log("Creating checkout session with data:", req.body);
+    
     if (!bookingId || !stripePriceId || !bookingPrice) {
         return res.status(400).json({ message: 'Missing required booking information.' });
     }
@@ -53,81 +53,6 @@ router.post('/create-checkout-session', urlencodedParser, wrapAsync(async (req, 
 
     res.redirect(303, session.url);
 }));
-
-const confirmBooking = async (bookingId) => {
-    try {
-        const booking = await Booking.findById(bookingId).populate('bookedBy');
-        
-        if (booking && booking.status === 'pending') {
-            booking.status = 'confirmed';
-            booking.createdAt = new Date();
-            await booking.save();
-            console.log(`Booking ${bookingId} status updated to confirmed.`);
-            
-            // Send confirmation email if user exists and has email
-            if (booking.bookedBy && booking.bookedBy.email) {
-                try {
-                    // Check if email service is configured
-                    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-                        console.warn('Email service not configured - skipping confirmation email');
-                    } else {
-                        const bookingDetails = {
-                            bookingId: booking._id,
-                            date: booking.date,
-                            startTime: booking.startTime,
-                            endTime: booking.endTime,
-                            price: booking.price
-                        };
-                        
-                        await sendBookingConfirmationEmail(
-                            booking.bookedBy.email,
-                            booking.bookedBy.name,
-                            bookingDetails
-                        );
-                        console.log(`Confirmation email sent to ${booking.bookedBy.email} for booking ${bookingId}`);
-                    }
-                } catch (emailError) {
-                    // Log email error but don't fail the booking confirmation
-                    console.error(`Failed to send confirmation email for booking ${bookingId}:`, emailError);
-                }
-            }
-            
-            return { success: true, message: 'Booking confirmed' };
-        } else if (booking) {
-            console.warn(`Webhook Warning: Booking ${bookingId} already processed or not in pending state. Status: ${booking.status}`);
-            return { success: false, message: 'Booking already processed' };
-        } else {
-            console.error(`Webhook Error: Booking ${bookingId} not found`);
-            return { success: false, message: 'Booking not found' };
-        }
-    } catch (error) {
-        console.error(`Database Error: Failed to confirm booking ${bookingId}: ${error.message}`);
-        throw error; // Re-throw so webhook can handle it
-    }
-}
-
-const cancelBooking = async (bookingId) => {
-    try {
-        const booking = await Booking.findById(bookingId);
-        
-        if (booking && booking.status === 'pending') {
-            booking.status = 'available';
-            booking.bookedBy = null;
-            await booking.save();
-            console.log(`Booking ${bookingId} reset due to session expiry.`);
-            return { success: true, message: 'Booking cancelled' };
-        } else if (booking) {
-            console.warn(`Webhook Warning: Booking ${bookingId} not in pending state. Status: ${booking.status}`);
-            return { success: false, message: 'Booking not in pending state' };
-        } else {
-            console.error(`Webhook Error: Booking ${bookingId} not found`);
-            return { success: false, message: 'Booking not found' };
-        }
-    } catch (error) {
-        console.error(`Database Error: Failed to cancel booking ${bookingId}: ${error.message}`);
-        throw error; // Re-throw so webhook can handle it
-    }
-};
 
 // Stripe Webhook Handler
 // Use express.raw({type: 'application/json'}) to get the raw body for signature verification

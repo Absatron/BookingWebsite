@@ -255,21 +255,6 @@ const cleanupExpiredBookings = async () => {
   }
 };
 
-// Run cleanup immediately on server start
-cleanupExpiredBookings().catch(error => {
-  console.error('Initial cleanup execution failed:', error);
-});
-
-// Run cleanup every 5 minutes
-const cleanupInterval = setInterval(async () => {
-  try {
-    await cleanupExpiredBookings();
-  } catch (error) {
-    console.error('Cleanup interval execution failed:', error);
-    // Interval continues running even if one execution fails
-  }
-}, 5 * 60 * 1000);
-
 // Function to delete old bookings (older than 30 days)
 async function deleteOldBookings() {
     const cutoffDate = new Date();
@@ -283,11 +268,45 @@ async function deleteOldBookings() {
     }
 }
 
-// Schedule the task to run daily at midnight
-cron.schedule('0 0 * * *', () => {
-    console.log('Running automated booking deletion');
-    deleteOldBookings();
-});
+// Variables to store intervals for cleanup
+let cleanupInterval;
+let cronJob;
+
+// Only start background processes if not in test environment
+if (process.env.NODE_ENV !== 'test') {
+  // Run cleanup immediately on server start
+  cleanupExpiredBookings().catch(error => {
+    console.error('Initial cleanup execution failed:', error);
+  });
+
+  // Run cleanup every 5 minutes
+  cleanupInterval = setInterval(async () => {
+    try {
+      await cleanupExpiredBookings();
+    } catch (error) {
+      console.error('Cleanup interval execution failed:', error);
+      // Interval continues running even if one execution fails
+    }
+  }, 5 * 60 * 1000);
+
+  // Schedule the task to run daily at midnight
+  cronJob = cron.schedule('0 0 * * *', () => {
+      console.log('Running automated booking deletion');
+      deleteOldBookings();
+  });
+}
+
+// Export cleanup function for graceful shutdown
+export const cleanup = () => {
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+    cleanupInterval = null;
+  }
+  if (cronJob) {
+    cronJob.destroy();
+    cronJob = null;
+  }
+};
 
 // Download receipt (PDF) for a booking
 router.get('/:bookingId/receipt', authenticateToken, wrapAsync(async (req, res) => {

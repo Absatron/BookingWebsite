@@ -36,7 +36,7 @@ const userSchema = new mongoose.Schema({
     }
 });
 
-const SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS) || 12;
+const SALT_ROUNDS = process.env.NODE_ENV === 'test' ? 1 : parseInt(process.env.BCRYPT_SALT_ROUNDS) || 12;
 
 // Encrypts password before saving to mongoDB
 userSchema.pre('save', async function (next) {
