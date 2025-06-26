@@ -1,31 +1,11 @@
 import express from 'express';
 import { wrapAsync } from '../utils/error-utils.js';
-import { User } from '../models.js';
-import dotenv from 'dotenv';
-import { checkIfEmailIsAdmin } from '../utils/auth-utils.js';
+import { checkIfEmailIsAdmin, isValidEmail, isValidPassword } from '../utils/auth-utils.js';
 import { generateVerificationToken, sendVerificationEmail, sendPasswordResetEmail } from '../utils/email-service.js';
 import { generateToken, authenticateToken } from '../utils/jwt-utils.js';
-
-dotenv.config();
+import { User } from '../models.js';
 
 const router = express.Router();
-
-// Email validation function
-const isValidEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-};
-
-// Password validation function
-const isValidPassword = (password) => {
-    // At least 8 characters long
-    // Contains at least one uppercase letter
-    // Contains at least one lowercase letter
-    // Contains at least one number
-    // Contains at least one special character
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]{8,}$/;
-    return passwordRegex.test(password);
-};
 
 router.post('/register', wrapAsync(async (req, res) => {
     const { name, email, password } = req.body;
@@ -90,11 +70,14 @@ router.post('/register', wrapAsync(async (req, res) => {
 
 router.post('/login', wrapAsync(async (req, res) => {
     const { email, password } = req.body;
+    
+    // Find user by email
     const user = await User.findOne({ email });
     if (!user) {
         return res.status(401).json({ message: 'Invalid email or password' });
     }
 
+    // Validate password
     const validPassword = await user.comparePassword(password);
     if (!validPassword) {
         return res.status(401).json({ message: 'Invalid email or password' });
@@ -137,7 +120,6 @@ router.get('/validate-token', authenticateToken, wrapAsync(async (req, res) => {
     });
 }));
 
-
 router.post('/logout', (req, res) => {
     // With JWT, logout is handled client-side by removing the token
     // Server doesn't need to do anything since JWT is stateless
@@ -150,18 +132,20 @@ router.post('/verify-email', wrapAsync(async (req, res) => {
 
     console.log('📧 Email verification attempt with token:', token?.substring(0, 8) + '...');
 
+    // Check if token is provided
     if (!token) {
         console.log('❌ Email verification failed - no token provided');
         return res.status(400).json({ message: 'Verification token is required' });
     }
 
+    // Find user by verification token
     const user = await User.findOne({ verificationToken: token });
-
     if (!user) {
         console.log('❌ Email verification failed - invalid token:', token?.substring(0, 8) + '...');
         return res.status(400).json({ message: 'Invalid verification token' });
     }
 
+    // Check if user is already verified
     if (user.isVerified) {
         console.log('❌ Email verification failed - already verified for email:', user.email);
         return res.status(400).json({ message: 'Email is already verified' });
@@ -195,23 +179,26 @@ router.post('/resend-verification', wrapAsync(async (req, res) => {
 
     console.log('🔄 Resend verification request for email:', email);
 
+    // Validate email was provided
     if (!email) {
         console.log('❌ Resend verification failed - no email provided');
         return res.status(400).json({ message: 'Email is required' });
     }
-
+    
+    // Validate email format
     if (!isValidEmail(email)) {
         console.log('❌ Resend verification failed - invalid email format:', email);
         return res.status(400).json({ message: 'Invalid email format' });
     }
 
+    // Find user by email
     const user = await User.findOne({ email });
-
     if (!user) {
         console.log('❌ Resend verification failed - user not found:', email);
         return res.status(404).json({ message: 'User not found' });
     }
 
+    // Check if user is already verified
     if (user.isVerified) {
         console.log('❌ Resend verification failed - email already verified:', email);
         return res.status(400).json({ message: 'Email is already verified' });
@@ -245,11 +232,13 @@ router.post('/forgot-password', wrapAsync(async (req, res) => {
 
     console.log('🔐 Password reset request for email:', email);
 
+    // Validate email was provided
     if (!email) {
         console.log('❌ Password reset failed - no email provided');
         return res.status(400).json({ message: 'Email is required' });
     }
 
+    // Validate email format
     if (!isValidEmail(email)) {
         console.log('❌ Password reset failed - invalid email format:', email);
         return res.status(400).json({ message: 'Invalid email format' });
@@ -301,6 +290,7 @@ router.post('/reset-password', wrapAsync(async (req, res) => {
 
     console.log('🔄 Password reset attempt with token:', token?.substring(0, 8) + '...');
 
+    // Validate token and new password were provided
     if (!token || !newPassword) {
         console.log('❌ Password reset failed - missing token or password');
         return res.status(400).json({ message: 'Token and new password are required' });
@@ -335,9 +325,6 @@ router.post('/reset-password', wrapAsync(async (req, res) => {
     await user.save();
 
     console.log('🔐 Password updated and reset tokens cleared for user:', user.email);
-
-    // Log the user out of all sessions for security
-    // Note: This would require additional session management if you want to invalidate all sessions
 
     return res.json({
         message: 'Password has been reset successfully. You can now log in with your new password.'

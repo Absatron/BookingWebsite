@@ -1,40 +1,22 @@
-import { User } from '../models.js'; // Import User model
-import { wrapAsync } from './error-utils.js'; // Import wrapAsync for error handling
+// Email validation function
+export const isValidEmail = (email) => {
+    // exampleemail@example.com
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+};
 
-// Synchronous function to check if an email matches the admin email
+// Password validation function
+export const isValidPassword = (password) => {
+    // At least 8 characters long
+    // Contains at least one uppercase letter
+    // Contains at least one lowercase letter
+    // Contains at least one number
+    // Contains at least one special character
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]{8,}$/;
+    return passwordRegex.test(password);
+};
+
+// Admin email check function
 export const checkIfEmailIsAdmin = (email) => {
     return email === process.env.ADMIN_EMAIL;
 };
-
-// Middleware to check if a user is logged in
-export const isAuthenticated = (req, res, next) => {
-    if (!req.session.user_id) {
-        return res.status(401).json({ message: "Authentication required. Please log in." });
-    }
-    next();
-};
-
-// Middleware to check if the logged-in user is an admin
-export const isAdminUser = wrapAsync(async (req, res, next) => {
-    const userId = req.session.user_id;
-
-    if (!userId) {
-        // No user logged in
-        return res.status(401).json({ message: "Authentication required." });
-    }
-
-    const user = await User.findById(userId);
-
-    if (!user) {
-        // User not found in DB (session might be stale)
-        return res.status(401).json({ message: "Invalid session. Please log in again." });
-    }
-
-    if (user.email === process.env.ADMIN_EMAIL) {
-        // User is admin, proceed to the next middleware/route handler
-        return next();
-    } else {
-        // User is not admin
-        return res.status(403).json({ message: "Forbidden: Admin access required." });
-    }
-});

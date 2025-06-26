@@ -104,9 +104,9 @@ const App = () => (
                 element={<PrivateRoute element={<Layout><AdminUserBookings /></Layout>} adminOnly={true} />} 
               />
               
-              
               {/* Catch-all Route */}
               <Route path="*" element={<Layout><NotFound /></Layout>} />
+              
             </Routes>
           </BrowserRouter>
         </BookingProvider>

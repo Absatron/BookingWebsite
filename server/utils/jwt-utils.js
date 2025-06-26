@@ -18,7 +18,7 @@ export const generateToken = (user) => {
         process.env.JWT_SECRET,
         { 
             expiresIn: '1h',
-            issuer: 'time-ticket-oasis'
+            issuer: 'bookingApp'
         }
     );
 };

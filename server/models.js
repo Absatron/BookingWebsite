@@ -40,7 +40,7 @@ const userSchema = new mongoose.Schema({
 
 const SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS) || 12;
 
-// encrypts password before saving to mongoDB
+// Encrypts password before saving to mongoDB
 userSchema.pre('save', async function (next) {
     if (!this.isModified('password')) return next();
     try {
