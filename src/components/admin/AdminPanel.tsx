@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,8 +16,13 @@ const AdminPanel = () => {
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [price, setPrice] = useState('');
-  const { timeSlots, addTimeSlot, deleteTimeSlot, isLoading } = useBooking();
+  const { timeSlots, addTimeSlot, deleteTimeSlot, isLoading, fetchTimeSlots } = useBooking();
   const navigate = useNavigate();
+
+   // Refresh time slots when component mounts
+  useEffect(() => {
+    fetchTimeSlots();
+  }, [fetchTimeSlots]);
   
   const handleAddSlot = async () => {
     if (!selectedDate || !startTime || !endTime || !price) {
