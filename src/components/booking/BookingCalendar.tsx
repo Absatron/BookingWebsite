@@ -99,7 +99,6 @@ const BookingCalendar = () => {
       return;
     }
 
-    // Call the updated createBooking which now initiates the booking on the backend
     // calls route /api/bookings/initiate
     const bookingResult = await createBooking(selectedSlot.id);
 
@@ -111,12 +110,9 @@ const BookingCalendar = () => {
     
     // Check if the initiation was successful and we received the bookingId
     if (bookingResult && bookingResult.bookingId) {
-      // Navigate to the payment page, passing the bookingId
-      // The stripePriceId is also available in bookingResult.stripePriceId if needed on the payment page
+      // Navigate to the payment page with the bookingId
       navigate(`/payment/${bookingResult.bookingId}`); 
     } else {
-      // Error handling is done within createBooking (toast messages)
-      // Optionally add more specific UI feedback here if needed
       console.error("Booking initiation failed or bookingId not received.");
     }
   };

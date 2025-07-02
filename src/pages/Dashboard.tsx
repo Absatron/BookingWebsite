@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react'; // Import useState and useEffect
-import { useNavigate, Link } from 'react-router-dom'; // Import useNavigate
+import React, { useState, useEffect } from 'react'; 
+import { useNavigate, Link } from 'react-router-dom'; 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBooking } from '@/contexts/BookingContext';
-import { Calendar, Clock, User, Settings, ArrowRight, List, Loader2 } from 'lucide-react'; // Import Loader2
-import { format, parseISO } from 'date-fns'; // Import parseISO
-import { Booking, TimeSlot } from '@/types'; // Import Booking type
+import { Calendar, Clock, User, Settings, ArrowRight, List, Loader2 } from 'lucide-react';
+import { format, parseISO } from 'date-fns'; 
+import { Booking, TimeSlot } from '@/types'; 
 
 const Dashboard = () => {
   const { currentUser, loading } = useAuth();
@@ -104,8 +104,8 @@ const Dashboard = () => {
     return slotDateTime > new Date();
   };
 
-  // Filter for future bookings only (for regular users) or all confirmed bookings (for admin)
-  const futureBookings = userBookings.filter(isFutureBooking); // Users see only future bookings
+  // Filter user bookings to only include future bookings
+  const futureBookings = userBookings.filter(isFutureBooking); 
 
   // Calculate stats using filtered bookings
   const upcomingBookingsCount = futureBookings.length;
@@ -120,12 +120,11 @@ const Dashboard = () => {
       return dateA.getTime() - dateB.getTime();
     })[0];
 
-  // Count available slots (this logic remains the same)
+  // Count available slots 
   const availableSlots = timeSlots.filter(slot => !slot.isBooked && isFutureSlot(slot)).length;
 
   return (
     <div className="booking-container py-8">
-      {/* ... Header section remains the same ... */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
         <div>
           <h1 className="text-2xl font-bold text-booking-primary">Dashboard</h1>
@@ -164,7 +163,6 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* ... Available Slots card remains the same ... */}
          <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">Available Slots</CardTitle>
@@ -181,7 +179,6 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* ... Admin/Account card remains the same ... */}
          {currentUser.isAdmin ? (
           <Card>
             <CardHeader className="pb-2">

@@ -7,7 +7,7 @@ export const config = {
           ),
   clientUrl: import.meta.env.VITE_CLIENT_URL || 
             (import.meta.env.MODE === 'production'
-              ? 'https://bookingapp-m8mns1097-absatrons-projects.vercel.app'
+              ? 'https://bookingapp-gamma-orcin.vercel.app' // Production Client
               : 'http://localhost:8080'
             ),
 };

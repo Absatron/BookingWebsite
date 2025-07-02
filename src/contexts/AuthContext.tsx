@@ -216,7 +216,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       localStorage.removeItem('currentUser');
       localStorage.removeItem('authToken');
       
-      // Optional: Call backend for logging/audit purposes
+      // Call backend for logging/audit purposes
       await fetch(`${config.apiUrl}/api/user/logout`, {
         method: 'POST',
         headers: {

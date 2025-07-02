@@ -13,9 +13,8 @@ interface BackendEventData {
   endTime: string;
   price: number;
   status: 'available' | 'pending' | 'completed' | 'cancelled';
-  bookedBy?: string | null; // Optional, might be null or ObjectId string
+  bookedBy?: string | null; 
   stripePriceId: string;
-  // Add any other fields returned by the /api/bookings endpoint
 }
 
 type BookingContextType = {
@@ -28,8 +27,8 @@ type BookingContextType = {
   createBooking: (bookingId: string) => Promise<{ bookingId: string; stripePriceId: string } | null>;
   getSlotById: (id: string) => TimeSlot | undefined;
   fetchTimeSlots: () => Promise<void>;
-  getUserBookings: () => Promise<Booking[]>; // Changed from getUserBookings
-  getAllAdminBookings: () => Promise<Booking[]>; // New admin function
+  getUserBookings: () => Promise<Booking[]>; 
+  getAllAdminBookings: () => Promise<Booking[]>; 
 };
 
 const BookingContext = createContext<BookingContextType | undefined>(undefined);
@@ -65,7 +64,6 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       // Use the specific BackendEventData type here
       const fetchedSlots: TimeSlot[] = data.bookings.map((event: BackendEventData) => ({
         id: event.id,
-        // Parse date string correctly, assuming backend sends YYYY-MM-DD or ISO
         // format() expects a Date object, so parse first if needed
         date: format(new Date(event.date), 'yyyy-MM-dd'),
         startTime: event.startTime,
@@ -247,7 +245,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
         throw new Error(errorData.message || 'Failed to fetch user bookings');
       }
 
-      // Raw data from the backend (adjust type if backend structure is known)
+      // Raw data from the backend 
       const rawBookings = await response.json();
 
       // Parse raw data into the frontend Booking type
@@ -271,7 +269,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
           userId: rawBooking.bookedBy, // Assuming backend returns the ID string
           bookingId: rawBooking._id, // Using the booking ID as the bookingId
           paymentStatus: paymentStatus,
-          createdAt: '2024-01-01T12:00:00.000Z', // Hardcoded date for now
+          createdAt: rawBooking.createdAt || '2024-01-01T12:00:00.000Z', // Fallback date if not provided
           slot: { // Construct the nested slot object from booking details
             id: rawBooking._id, // Use booking ID for slot ID
             date: format(new Date(rawBooking.date), 'yyyy-MM-dd'), // Format date string
@@ -280,8 +278,6 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
             isBooked: true, // This represents a booked slot
             price: rawBooking.price,
             bookedBy: rawBooking.bookedBy, // Include bookedBy if needed
-            // Note: Other TimeSlot fields like 'status' or 'stripePriceId' might exist in the backend
-            // booking model but are not part of the nested `slot` in the `Booking` type.
           }
         };
       });
@@ -401,8 +397,8 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     selectSlot,
     createBooking,
     getSlotById,
-    getUserBookings, // Expose the updated function
-    getAllAdminBookings, // Expose the new admin function
+    getUserBookings,
+    getAllAdminBookings, 
     fetchTimeSlots,
   };
 

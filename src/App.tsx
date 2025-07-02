@@ -36,7 +36,6 @@ import AdminPanel from "./components/admin/AdminPanel";
 // Payment Components
 import PaymentForm from "./components/payment/PaymentForm";
 import BookingConfirmation from "./components/payment/BookingConfirmation";
-import { Book } from "lucide-react";
 import ApiHealthCheck from "./components/debug/ApiHealthCheck";
 
 const queryClient = new QueryClient();

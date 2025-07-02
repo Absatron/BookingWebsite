@@ -1,29 +1,27 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link, useLocation } from 'react-router-dom'; // Import useLocation
+import { useParams, useNavigate, Link } from 'react-router-dom'; 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { format, parseISO } from 'date-fns';
-import { Calendar, Clock, DollarSign, CheckCircle, Download, Loader2 } from 'lucide-react'; // Added Loader2
-import { Booking as BookingType } from '@/types'; // Assuming Booking type is defined
+import { Calendar, Clock, DollarSign, CheckCircle, Download, Loader2 } from 'lucide-react'; 
+import { Booking as BookingType } from '@/types'; 
 import { config } from '@/lib/config';
 
-// Define a type for the fetched booking details, ensure it includes status
+
 interface ConfirmedBooking extends Omit<BookingType, '_id' | 'date' | 'isBooked' | 'paymentStatus'> {
   _id: string;
-  date: string; // Expecting ISO string
+  date: string; 
   startTime: string;
   endTime: string;
   price: number;
-  status: 'available' | 'pending' | 'confirmed'; // Add status field
-  // Add other fields returned by your backend /api/bookings/:bookingId endpoint
+  status: 'available' | 'pending' | 'confirmed'; 
 }
 
 
 const BookingConfirmation = () => {
   const { bookingId } = useParams<{ bookingId: string }>();
   const navigate = useNavigate();
-  const location = useLocation(); // Get location object
   const { toast } = useToast();
 
   const [confirmedBooking, setConfirmedBooking] = useState<ConfirmedBooking | null>(null);
@@ -31,16 +29,11 @@ const BookingConfirmation = () => {
   const [error, setError] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
 
-  // Extract session_id from query params (optional, for potential verification)
-  const queryParams = new URLSearchParams(location.search);
-  const sessionId = queryParams.get('session_id');
-
-
   useEffect(() => {
     if (!bookingId) {
       setError("No booking ID provided.");
       setIsLoading(false);
-      navigate('/dashboard'); // Or appropriate error page/redirect
+      navigate('/dashboard'); 
       return;
     }
 
@@ -72,19 +65,15 @@ const BookingConfirmation = () => {
         const fetchedBooking = data as ConfirmedBooking;
 
         if (fetchedBooking.status !== 'confirmed') {
-           // Optional: Add a small delay and retry fetch in case webhook is slightly delayed
-           //await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s
-           // const retryResponse = await fetch(...); // Retry fetch
-           // ... handle retry response ...
-           // If still not completed after retry:
+
            console.warn(`Booking ${bookingId} status is ${fetchedBooking.status}, expected 'completed'. Payment might be processing.`);
            toast({
              title: "Payment Processing",
              description: "Your payment might still be processing. Please check 'My Bookings' shortly or contact support if this persists.",
-             variant: "default", // Use default or warning variant
+             variant: "default", 
            });
-           // Navigate to a pending page or dashboard instead of showing confirmation
-           navigate('/my-bookings'); // Redirect to user's bookings page
+           
+           navigate('/my-bookings'); 
            return; // Stop further processing
         }
 
@@ -107,7 +96,7 @@ const BookingConfirmation = () => {
 
     fetchBookingStatus();
 
-  }, [bookingId, navigate, toast, sessionId]); // Added sessionId to dependencies (optional)
+  }, [bookingId, navigate, toast]); 
 
   // Handle receipt download
   const handleDownloadReceipt = async () => {

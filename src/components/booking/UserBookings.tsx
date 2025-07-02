@@ -1,20 +1,20 @@
-import React, { useState, useEffect } from 'react'; // Added useState, useEffect
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import React, { useState, useEffect } from 'react'; 
+import { useNavigate } from 'react-router-dom'; 
 import { format, parseISO, compareAsc } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, DollarSign, Loader2 } from 'lucide-react'; // Added Loader2
+import { Calendar, Clock, DollarSign, Loader2 } from 'lucide-react'; 
 import { useBooking } from '@/contexts/BookingContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { Booking } from '@/types'; // Import the Booking type
+import { Booking } from '@/types'; 
 
 const UserBookings = () => {
   const { getUserBookings } = useBooking();
   const { currentUser, loading } = useAuth();
-  const navigate = useNavigate(); // Add navigate hook
-  const [userBookings, setUserBookings] = useState<Booking[]>([]); // Added state for bookings
-  const [isLoading, setIsLoading] = useState<boolean>(true); // Added loading state
-  const [error, setError] = useState<string | null>(null); // Added error state
+  const navigate = useNavigate();
+  const [userBookings, setUserBookings] = useState<Booking[]>([]); 
+  const [isLoading, setIsLoading] = useState<boolean>(true); 
+  const [error, setError] = useState<string | null>(null); 
 
   // useEffect to fetch bookings on mount and when user changes
   useEffect(() => {
@@ -33,6 +33,7 @@ const UserBookings = () => {
       try {
         // Call the async function from context
         const bookingsData = await getUserBookings();
+
         // Sort bookings by date and time (earliest first)
         const sortedBookings = bookingsData.sort((a, b) => {
           const dateTimeA = parseISO(a.slot.date + 'T' + a.slot.startTime);
@@ -50,7 +51,7 @@ const UserBookings = () => {
     };
 
     fetchBookings();
-  }, [currentUser, loading, getUserBookings]); // Rerun effect if user or fetch function changes
+  }, [currentUser, loading, getUserBookings]); 
 
   // Handle logged out state
   if (!currentUser) {
