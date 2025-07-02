@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Calendar, Clock, DollarSign, User, Mail, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import { config } from '@/lib/config';
+import { parseCreatedAtDate } from '@/utils/dateUtils';
 
 interface BookingDetailsData {
   _id: string;
@@ -21,20 +22,6 @@ interface BookingDetailsData {
   };
   createdAt: string;
 }
-
-// Helper function to safely parse createdAt timestamp
-const parseCreatedAtDate = (createdAt: string): Date => {
-  // Check if the string is a numeric Unix timestamp (only digits)
-  const unixTimestampRegex = /^\d+$/;
-  
-  if (unixTimestampRegex.test(createdAt)) {
-    // Parse as Unix timestamp (multiply by 1000 to convert to milliseconds)
-    return new Date(parseInt(createdAt) * 1000);
-  } else {
-    // Treat as ISO string or other standard date format
-    return new Date(createdAt);
-  }
-};
 
 const BookingDetails = () => {
   const { bookingId } = useParams<{ bookingId: string }>();
@@ -211,7 +198,7 @@ const BookingDetails = () => {
                 <div>
                   <span className="font-medium">Created At:</span>
                   <span className="ml-2 text-gray-600">
-                    {format(parseCreatedAtDate(booking.createdAt), 'MMM d, yyyy at h:mm a')}
+                    {format(parseCreatedAtDate(booking.createdAt), 'MMM d, yyyy h:mm a')}
                   </span>
                 </div>
               </div>
