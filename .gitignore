@@ -26,3 +26,6 @@ dist-ssr
 .env
 .env.production
 .env.local
+
+# MCP configuration with database credentials
+mcp.json
