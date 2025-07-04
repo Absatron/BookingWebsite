@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom'; 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,6 +31,7 @@ const PaymentForm = () => {
   const [bookingDetails, setBookingDetails] = useState<FetchedBooking | null>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(true);
   const [processing, setProcessing] = useState(false); // For form submission state
+  const proceedingToPayment = useRef(false); // Track if user is proceeding to payment
 
   // Check for cancellation query parameter
   const queryParams = new URLSearchParams(location.search);
@@ -108,7 +109,8 @@ const PaymentForm = () => {
 
     // Add cleanup function for navigation away
     const handleBeforeUnload = () => {
-      if (bookingId) {
+      // Only cancel if not proceeding to payment
+      if (bookingId && !proceedingToPayment.current) {
         const token = localStorage.getItem('authToken')
         fetch(`${config.apiUrl}/api/bookings/${bookingId}/cancel`, {
           method: 'POST',
@@ -130,7 +132,8 @@ const PaymentForm = () => {
     window.removeEventListener('beforeunload', handleBeforeUnload);
     
     // If component unmounts and we have a booking ID, try to cancel
-    if (bookingId) {
+    // Only cancel if not proceeding to payment
+    if (bookingId && !proceedingToPayment.current) {
       const token = localStorage.getItem('authToken');
       fetch(`${config.apiUrl}/api/bookings/${bookingId}/cancel`, {
         method: 'POST',
@@ -161,6 +164,9 @@ const PaymentForm = () => {
        });
        return;
      }
+    
+    // Set flag to indicate user is proceeding to payment
+    proceedingToPayment.current = true;
     setProcessing(true); // Set processing state to true
   };  // Handle cancellation button click
   const handleCancel = async () => {
